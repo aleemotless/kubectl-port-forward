@@ -457,6 +457,54 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
   .ctl-grid { grid-template-columns: minmax(0, 1fr); }
   .rule { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
+/* ---------- gateway api ---------- */
+.split3 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 20px 22px; }
+.sp-col { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; align-content: start; min-height: 190px; background: var(--paper); transition: opacity 0.4s, border-color 0.4s; min-width: 0; }
+.sp-head { display: grid; gap: 2px; }
+.sp-head b { font: 600 0.86rem var(--f-mono); }
+#sp-ing { border-color: var(--signal); }
+.sp-gw { border-color: var(--k8s); }
+.split3[data-mode="ing"] .sp-gw, .split3[data-mode="gw"] #sp-ing { opacity: 0.35; border-style: dashed; }
+.sp-row { font: 600 0.74rem/1.45 var(--f-mono); padding: 8px 10px; border-radius: 8px; border-left: 3px solid var(--c); background: color-mix(in srgb, var(--c) 10%, var(--surface)); word-break: break-word; }
+.sp-row[data-own="infra"] { --c: var(--tunnel); } .sp-row[data-own="platform"] { --c: var(--signal); } .sp-row[data-own="app"] { --c: var(--k8s); }
+.sp-row .g, .split3[data-mode="gw"] .sp-row .i { display: none; }
+.split3[data-mode="gw"] .sp-row .g { display: inline; }
+#gw .gs { transition: opacity 0.45s; }
+#gw .gs.unbuilt { opacity: 0.08; }
+#gw .gs.just { animation: chipin 0.5s cubic-bezier(.2, .9, .3, 1.3); transform-box: fill-box; transform-origin: center; }
+#gw .comp.win .box { stroke: var(--ok); stroke-width: 2.5; }
+#gw .comp.lose { opacity: 0.4; }
+.route-verdict { font-weight: 700; }
+.win .route-verdict { fill: var(--ok); }
+.lose .route-verdict { fill: var(--danger); }
+.gw-steps { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 12px 22px 0; }
+.gw-steps button { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px; padding: 8px 9px; border-radius: 8px; border: 1.5px solid var(--line); font: 0.74rem/1.25 var(--f-body); color: var(--muted); min-width: 0; }
+.gw-steps button b { font: 700 0.8rem var(--f-mono); color: var(--ink); }
+.gw-steps button.done { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, transparent); color: var(--ink); }
+.gw-steps button[aria-current="step"] { border-color: var(--signal); background: color-mix(in srgb, var(--signal) 12%, transparent); }
+.gw-steps button:focus-visible { outline: 2px solid var(--signal); }
+#g-cmdwrap { padding: 12px 22px 4px; }
+.links { display: grid; gap: 6px; padding: 16px 22px; }
+.lk-row { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 170px minmax(0, 1fr) 190px; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 8px; }
+.lk-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.lk-row:focus-visible { outline: 2px solid var(--signal); }
+.lk-row .pill { font: 600 0.74rem var(--f-mono); padding: 6px 9px; border-radius: 7px; border: 1.5px solid var(--k8s); background: var(--surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lk-line { position: relative; height: 26px; display: flex; align-items: center; justify-content: center; }
+.lk-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid var(--ok); transition: border-color 0.3s; }
+.lk-line i { position: relative; font: 600 0.72rem var(--f-mono); font-style: normal; background: var(--surface); padding: 2px 8px; border-radius: 6px; color: var(--muted); }
+.lk-row.broken .lk-line::before { border-top: 2px dashed var(--danger); }
+.lk-row.broken .lk-line i { color: var(--danger); animation: shake 0.4s; }
+.lk-row.broken .pill { border-color: var(--danger); }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.files-seg { flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .split3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gw-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .lk-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .gw-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -1146,6 +1194,183 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
     <button class="cmd-row"><code>kubectl -n ingress-nginx logs deploy/ingress-nginx-controller -f</code><span>Watch reloads and access logs</span></button>
     <button class="cmd-row"><code>kubectl -n ingress-nginx exec deploy/ingress-nginx-controller -- cat /etc/nginx/nginx.conf</code><span>See the generated config</span></button>
     <button class="cmd-row"><code>curl -i localhost/</code><span>Through the Ingress from your Mac</span></button>
+  </div>
+</section>
+</article>
+
+<!-- ================= TOPIC: GATEWAY API ================= -->
+<article id="gateway" data-topic data-title="Gateway API">
+<header class="hero solo">
+  <div>
+    <div class="eyebrow">Networking</div>
+    <h1 style="margin-top:18px"><span class="cmd">./playbook.sh up</span>Gateway API</h1>
+    <p class="lede">The successor to Ingress. The same job, split into three objects so each team owns its own part. In this lab Traefik is the controller.</p>
+    <ul class="facts">
+      <li>GatewayClass <b>traefik</b></li>
+      <li>Gateway <b>http :80 · https :443</b></li>
+      <li>HTTPRoutes <b>host · /api</b></li>
+      <li>app <b>python-app ×3 :8000</b></li>
+    </ul>
+  </div>
+</header>
+
+<section id="gw-split" data-nav="Ingress, split in three">
+  <header class="prose">
+    <div class="eyebrow">The idea</div>
+    <h2>One Ingress becomes three objects</h2>
+    <p>Each part of an Ingress moves to the team that owns it.</p>
+  </header>
+  <div class="figure">
+    <div class="split3" id="sp" data-mode="ing">
+      <div class="sp-col" id="sp-ing"><div class="sp-head"><span class="k">Ingress</span><b>my-ingress</b></div></div>
+      <div class="sp-col sp-gw" data-own="infra"><div class="sp-head"><span class="k">GatewayClass · infra</span><b>traefik</b></div></div>
+      <div class="sp-col sp-gw" data-own="platform"><div class="sp-head"><span class="k">Gateway · platform team</span><b>gateway-api</b></div></div>
+      <div class="sp-col sp-gw" data-own="app"><div class="sp-head"><span class="k">HTTPRoute · app team</span><b>python-route-*</b></div></div>
+    </div>
+    <div class="bar">
+      <button class="btn primary" id="sp-btn">Split it</button>
+      <span class="spacer"></span>
+      <span class="t-legend">weights, header matches, redirects: standard fields, not annotations</span>
+    </div>
+  </div>
+</section>
+
+<section id="gw-lab" data-nav="Build it, then curl it">
+  <header class="prose">
+    <div class="eyebrow">The lab · 7 steps</div>
+    <h2>Build it, then send a request</h2>
+    <p>Each step adds its objects to the picture. Once everything is built, curl it and watch the route match.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="gw" viewBox="0 0 1000 520" role="img" aria-label="The Gateway API lab: your Mac, port-forward, Traefik, Gateway, HTTPRoutes, Service and python-app Pods in a kind cluster">
+        <rect class="zone z-laptop" x="16" y="16" width="214" height="488" rx="14"/>
+        <text class="t-zone" x="32" y="40">YOUR MAC</text>
+        <g class="comp" id="g-curl"><rect class="box" x="34" y="66" width="178" height="66" rx="10" style="stroke:var(--signal)"/><text class="t-title" x="50" y="94">curl</text><text class="t-small" x="50" y="114" id="g-curl-t">example-app-python.com</text></g>
+        <g class="comp gs" data-s="7" id="g-hosts"><rect class="box" x="34" y="176" width="178" height="62" rx="10"/><text class="t-title" x="50" y="202">/etc/hosts</text><text class="t-small" x="50" y="222">→ 127.0.0.1</text></g>
+        <g class="comp gs" data-s="7" id="g-pf"><rect class="box" x="34" y="282" width="178" height="74" rx="10"/><text class="t-title" x="50" y="306">port-forward</text><text class="t-small" x="50" y="326">8080 → svc/traefik :80</text><text class="t-small" x="50" y="342">8443 → :443</text></g>
+        <path class="wire gs" data-s="7" d="M123,132 V176"/><path class="wire gs" data-s="7" d="M123,238 V282"/>
+
+        <g class="gs" data-s="1">
+          <rect class="zone z-cp" x="250" y="16" width="734" height="488" rx="14"/>
+          <text class="t-zone" x="266" y="38">KIND · gatewayapi · 1 node</text>
+          <rect class="zone" x="266" y="50" width="702" height="70" rx="10" style="fill:none;stroke:var(--line);stroke-dasharray:5 4"/>
+          <text class="t-small" x="952" y="66" text-anchor="end">cluster-scoped</text>
+          <rect class="zone z-node" x="266" y="134" width="250" height="356" rx="12"/>
+          <text class="t-small" x="282" y="154">ns traefik</text>
+          <rect class="zone z-node" x="532" y="134" width="436" height="356" rx="12"/>
+          <text class="t-small" x="548" y="154">ns default</text>
+        </g>
+        <g class="comp gs" data-s="2" id="g-crd"><rect class="box" x="282" y="64" width="240" height="46" rx="8"/><text class="t-badge" x="296" y="84">Gateway API CRDs v1.4.1</text><text class="t-small" x="296" y="100">new kinds: Gateway, HTTPRoute…</text></g>
+        <g class="comp gs" data-s="4" id="g-gc"><rect class="box" x="540" y="64" width="250" height="46" rx="8" style="stroke:var(--k8s)"/><text class="t-badge" x="554" y="84">GatewayClass traefik</text><text class="t-small" x="554" y="100">traefik.io/gateway-controller</text></g>
+
+        <g class="comp gs" data-s="3" id="g-tr">
+          <rect class="box" x="282" y="168" width="218" height="214" rx="10" style="stroke:var(--signal);stroke-width:2"/>
+          <text class="t-title" x="298" y="194">Traefik pod</text>
+          <text class="t-small" x="298" y="212">controller + proxy</text>
+          <rect class="box" x="296" y="232" width="190" height="36" rx="6" id="g-web"/><text class="t-badge" x="308" y="255">web :80</text>
+          <rect class="box" x="296" y="276" width="190" height="36" rx="6" id="g-ws"/><text class="t-badge" x="308" y="299">websecure :443</text>
+          <text class="t-small" x="298" y="336">watches Gateway,</text>
+          <text class="t-small" x="298" y="352">HTTPRoute, endpoints</text>
+          <text class="t-small" x="298" y="368">Helm chart 37.3.0</text>
+        </g>
+        <g class="comp gs" data-s="3" id="g-trsvc"><rect class="box" x="282" y="398" width="218" height="54" rx="10"/><text class="t-badge" x="296" y="420">Service traefik</text><text class="t-small" x="296" y="438">LoadBalancer · &lt;pending&gt;</text></g>
+
+        <g class="comp gs" data-s="4" id="g-gw"><rect class="box" x="548" y="166" width="262" height="66" rx="10" style="stroke:var(--k8s)"/><text class="t-title" x="564" y="192" style="font-size:14px">Gateway gateway-api</text><text class="t-small" x="564" y="212">listener http :80</text><text class="t-small" x="564" y="226">listener https :443 · TLS</text></g>
+        <g class="comp gs" data-s="4" id="g-sec"><rect class="box" x="822" y="166" width="130" height="66" rx="10"/><text class="t-badge" x="836" y="192">Secret</text><text class="t-small" x="836" y="212">secret-tls</text></g>
+        <g class="comp gs" data-s="6" id="g-rh"><rect class="box" x="548" y="250" width="196" height="62" rx="10"/><text class="t-badge" x="562" y="273">route-host</text><text class="t-small" x="562" y="291">host/* · http</text><text class="t-small route-verdict" x="562" y="305"></text></g>
+        <g class="comp gs" data-s="6" id="g-rp"><rect class="box" x="756" y="250" width="196" height="62" rx="10"/><text class="t-badge" x="770" y="273">route-path</text><text class="t-small" x="770" y="291">/api* · http + https</text><text class="t-small route-verdict" x="770" y="305"></text></g>
+        <g class="comp gs" data-s="5" id="g-svc"><rect class="box" x="548" y="330" width="262" height="54" rx="10" style="stroke:var(--k8s)"/><text class="t-badge" x="562" y="352">Service python-app-svc</text><text class="t-small" x="562" y="370">ClusterIP · 80 → 8000</text></g>
+        <g class="comp gs" data-s="5" id="g-dep"><rect class="box" x="822" y="330" width="130" height="54" rx="10"/><text class="t-badge" x="836" y="352">Deployment</text><text class="t-small" x="836" y="370">replicas 3</text></g>
+        <g class="gs" data-s="5" id="g-pods"></g>
+        <g class="gs" data-s="4"><path class="lookup" d="M679,166 V110"/><path class="lookup" d="M810,199 H822"/></g>
+        <g class="gs" data-s="6"><path class="lookup" d="M646,250 V232"/><path class="lookup" d="M854,250 C 854,240 760,240 760,232"/></g>
+        <g class="gs" data-s="5"><path class="lookup" d="M679,312 V330"/></g>
+        <g class="gs" data-s="3"><path class="lookup" d="M500,260 C 525,260 520,199 548,199"/><text class="t-small" x="504" y="236">watch</text></g>
+        <g id="g-packets"></g>
+      </svg>
+    </div>
+    <div class="sim-status" id="g-status"></div>
+    <div class="gw-steps" id="g-steps"></div>
+    <div class="codewrap" id="g-cmdwrap"><pre class="code" id="g-cmd" data-copy></pre></div>
+    <div class="bar" id="g-reqbar">
+      <button class="btn" data-r="root">curl :8080/</button>
+      <button class="btn" data-r="api">curl :8080/api/users</button>
+      <button class="btn" data-r="tls">curl -k https :8443/api</button>
+      <button class="btn warn" data-r="bad">Host: nope.com</button>
+      <span class="spacer"></span>
+      <button class="btn" id="g-reset">Rebuild</button>
+    </div>
+    <pre class="term-log" id="g-log"></pre>
+  </div>
+</section>
+
+<section id="gw-links" data-nav="What points to what">
+  <header class="prose">
+    <div class="eyebrow">Debugging</div>
+    <h2>Break one link, see the symptom</h2>
+    <p>Most failures are one name or port that doesn't match. Click a link to break it.</p>
+  </header>
+  <div class="figure">
+    <div class="links" id="lk"></div>
+    <div class="sim-status" id="lk-out">Each row is a field that must equal a value somewhere else.</div>
+  </div>
+</section>
+
+<section id="gw-ns" data-nav="Namespaces">
+  <header class="prose">
+    <div class="eyebrow">Who lives where</div>
+    <h2>Three cross-namespace rules</h2>
+  </header>
+  <div class="minis">
+    <div class="mini"><b>Route → Gateway</b><code>allowedRoutes.namespaces.from: All</code><p>By default a Gateway only accepts routes from its own namespace. Yours allows all.</p></div>
+    <div class="mini"><b>Route → Service</b><code>ReferenceGrant</code><p>A backendRef can only point to a Service in the route's namespace, unless that namespace adds a ReferenceGrant. Keep routes next to the app.</p></div>
+    <div class="mini"><b>Gateway → Secret</b><code>certificateRefs</code><p>Same rule for TLS: keep the Secret in the Gateway's namespace, or add a ReferenceGrant.</p></div>
+  </div>
+</section>
+
+<section id="gw-trouble" data-nav="Errors you hit">
+  <header class="prose">
+    <div class="eyebrow">From building this lab</div>
+    <h2>Errors and fixes</h2>
+  </header>
+  <div class="errors">
+    <div class="err-card"><pre>additional properties 'logs' not allowed</pre><p><b>helm install.</b> Version was empty, so the newest chart came down. Pin <code>--version 37.3.0</code>.</p></div>
+    <div class="err-card"><pre>conflict with "kubectl" … bundle-version</pre><p><b>helm install.</b> Helm 4 re-applies the CRDs server-side. Use <code>--server-side=false</code>.</p></div>
+    <div class="err-card"><pre>Gateway Accepted=False · ListenersNotValid</pre><p><b>Missing secret-tls.</b> One bad listener blocks the whole Gateway, http included. Create the Secret first.</p></div>
+    <div class="err-card"><pre>404 on / while /api works</pre><p><b>Both routes had the same name</b>, so the second apply replaced the first. Give each route its own name.</p></div>
+    <div class="err-card"><pre>bind: permission denied (port 80)</pre><p><b>macOS</b> needs root below 1024. Forward <code>8080:80</code> instead.</p></div>
+    <div class="err-card"><pre>curl: (7) Failed to connect … port 80</pre><p><b>Wrong port, or a stale tunnel.</b> Use <code>:8080</code>, and restart port-forward after any Traefik rollout.</p></div>
+    <div class="err-card"><pre>Traefik writes no access logs</pre><p><b>Wrong key.</b> Chart 37.x uses <code>logs.access.enabled</code>, not <code>accessLogs</code>.</p></div>
+    <div class="err-card"><pre>no matches for kind "Gateway"</pre><p><b>CRDs missing.</b> Run step 2, then apply again.</p></div>
+  </div>
+</section>
+
+<section id="gw-files" data-nav="Lab files">
+  <header class="prose">
+    <div class="eyebrow">gateway/ · in playbook order</div>
+    <h2>The files</h2>
+  </header>
+  <div class="figure">
+    <div class="bar" style="border-top:0;border-bottom:1px solid var(--line)"><div class="seg files-seg" role="group" aria-label="File" id="gf-tabs"></div></div>
+    <div class="codewrap"><pre class="code" id="gf-pre" data-copy style="border-radius:0;max-height:34em"></pre></div>
+  </div>
+</section>
+
+<section id="gw-cmds" data-nav="Commands">
+  <header class="prose">
+    <div class="eyebrow">Click to copy</div>
+    <h2>Commands, in request order</h2>
+  </header>
+  <div class="cmds">
+    <button class="cmd-row"><code>kubectl get gatewayclass,gateway,httproute -A</code><span>Accepted? Programmed?</span></button>
+    <button class="cmd-row"><code>kubectl describe httproute python-route-path</code><span>Why a route isn't working (conditions)</span></button>
+    <button class="cmd-row"><code>kubectl get gateway gateway-api -o jsonpath='{range .status.listeners[*]}{.name}: {.attachedRoutes}{"\n"}{end}'</code><span>Routes attached per listener</span></button>
+    <button class="cmd-row"><code>kubectl get endpointslices -l kubernetes.io/service-name=python-app-svc</code><span>Ready Pods behind the Service</span></button>
+    <button class="cmd-row"><code>kubectl logs -n traefik deploy/traefik -f</code><span>Access log: which route handled it</span></button>
+    <button class="cmd-row"><code>kubectl run curl-test --rm -i --restart=Never --image=curlimages/curl -- curl -s -H 'Host: example-app-python.com' http://traefik.traefik/api</code><span>Test from inside, no hosts file needed</span></button>
+    <button class="cmd-row"><code>./playbook.sh status</code><span>State of every component</span></button>
+    <button class="cmd-row"><code>./playbook.sh down</code><span>Delete the cluster</span></button>
   </div>
 </section>
 </article>
@@ -3063,6 +3288,181 @@ async function mTest(u) {
   $('#m-out').textContent = `${u} → ${M_RULES[w].to}. ${M_WHY[u]}`;
 }
 document.querySelectorAll('#m-reqs [data-u]').forEach(b => (b.onclick = () => mTest(b.dataset.u)));
+
+/* ================= gateway: Ingress split in three ================= */
+const SP_ROWS = [
+  ['infra', 'ingressClassName: nginx', 'controllerName: traefik.io/gateway-controller'],
+  ['platform', 'tls + ports, repeated per Ingress', 'listeners: http :80, https :443 + TLS, shared'],
+  ['app', 'rules: host, path → service', 'hostnames + matches → backendRefs']
+];
+const sp = $('#sp');
+const spRows = SP_ROWS.map(([own, i, g]) => {
+  const d = document.createElement('div');
+  d.className = 'sp-row'; d.dataset.own = own;
+  d.innerHTML = `<span class="i">${esc(i)}</span><span class="g">${esc(g)}</span>`;
+  $('#sp-ing').append(d);
+  return d;
+});
+$('#sp-btn').onclick = () => {
+  const toGw = sp.dataset.mode === 'ing';
+  const before = spRows.map(r => r.getBoundingClientRect());
+  spRows.forEach(r => (toGw ? sp.querySelector(`.sp-gw[data-own="${r.dataset.own}"]`) : $('#sp-ing')).append(r));
+  sp.dataset.mode = toGw ? 'gw' : 'ing';
+  $('#sp-btn').textContent = toGw ? 'Back to Ingress' : 'Split it';
+  if (reduce) return;
+  spRows.forEach((r, i) => {
+    const a = r.getBoundingClientRect(), b = before[i];
+    r.animate([{ transform: `translate(${b.left - a.left}px, ${b.top - a.top}px)` }, { transform: 'none' }], { duration: 650, delay: i * 120, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+  });
+};
+
+/* ================= gateway: build + request ================= */
+const gwSvg = $('#gw'), gLayer = $('#g-packets'), gLogEl = $('#g-log'), gStatus = $('#g-status');
+const G_STEPS = [
+  ['Cluster', 'kind create cluster --name gatewayapi --config 01-cluster/kind.yaml', 'kubectl get nodes   → gatewayapi-control-plane Ready', 'One node, Kubernetes v1.34.'],
+  ['CRDs', 'kubectl apply --server-side -f \\\n  https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml', 'kubectl get crd | grep gateway   → gatewayclasses, gateways, httproutes…', 'Kubernetes has no Gateway kinds built in. Install them before Traefik.'],
+  ['Traefik', 'helm repo add traefik https://traefik.github.io/charts\nhelm upgrade --install traefik traefik/traefik --version 37.3.0 \\\n  -f 02-traefik/values.yaml -n traefik --create-namespace --server-side=false', 'kubectl -n traefik rollout status deploy/traefik', 'The controller and proxy. Entrypoints web :80 and websecure :443.'],
+  ['Gateway', 'openssl req -x509 -nodes -newkey rsa:2048 -days 365 -keyout tls.key -out tls.crt \\\n  -subj "/CN=example-app-python.com" -addext "subjectAltName=DNS:example-app-python.com"\nkubectl create secret tls secret-tls --cert=tls.crt --key=tls.key\nkubectl apply -f 03-gateway/', 'kubectl get gatewayclass,gateway   → ACCEPTED True · PROGRAMMED True', 'Secret first, then GatewayClass and Gateway. Listener ports match Traefik entrypoints.'],
+  ['App', 'docker build -t python-app:1.0 04-app/\nkind load docker-image python-app:1.0 --name gatewayapi\nkubectl apply -f 04-app/', 'kubectl get deploy python-app   → 3/3', 'Image loaded straight into kind, no registry.'],
+  ['Routes', 'kubectl apply -f 05-routes/', 'kubectl get httproute   → both Accepted', 'route-host: every path on the host. route-path: /api only, on http and https.'],
+  ['Reach it', 'echo "127.0.0.1  example-app-python.com" | sudo tee -a /etc/hosts\nkubectl -n traefik port-forward svc/traefik 8080:80 8443:443', 'curl http://example-app-python.com:8080/api/users', 'kind has no cloud LB, so the Traefik Service stays <pending>. port-forward stands in.']
+];
+const G_PODS = ['python-app-7d9c-xk2lp', 'python-app-7d9c-m4qzt', 'python-app-7d9c-r8vwn'];
+const G_PX = [548, 686, 824];
+G_PODS.forEach((n, i) => {
+  const g = mk('g', { class: 'pod comp', id: 'g-pod' + i }, $('#g-pods'));
+  mk('rect', { class: 'box', x: G_PX[i], y: 404, width: 128, height: 56, rx: 8 }, g);
+  mk('text', { class: 't-small', x: G_PX[i] + 10, y: 426 }, g).textContent = n.slice(11);
+  mk('text', { class: 't-small', x: G_PX[i] + 10, y: 444 }, g).textContent = 'app.py :8000';
+  mk('text', { class: 't-count', x: G_PX[i] + 118, y: 446, 'text-anchor': 'end' }, g).textContent = '0';
+});
+const gCounts = [0, 0, 0];
+let gBuilt = 0, gBusy = false;
+const gSteps = $('#g-steps');
+G_STEPS.forEach(([t], i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.innerHTML = `<b>${i + 1}</b>${t}`;
+  b.onclick = () => gBuild(i + 1);
+  gSteps.append(b);
+});
+function gBuild(n) {
+  const prev = gBuilt; gBuilt = n;
+  gwSvg.querySelectorAll('.gs').forEach(el => {
+    const s = +el.dataset.s;
+    el.classList.toggle('unbuilt', s > n);
+    if (s > prev && s <= n && s === n) { el.classList.remove('just'); void el.getBoundingClientRect(); el.classList.add('just'); }
+  });
+  [...gSteps.children].forEach((b, i) => {
+    b.classList.toggle('done', i < n);
+    if (i === n - 1) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+  });
+  const s = G_STEPS[n - 1];
+  $('#g-cmdwrap').hidden = !s;
+  if (s) $('#g-cmd').innerHTML = `<span class="dim"># step ${n} · ${esc(s[0])}</span>\n${esc(s[1])}\n<span class="dim"># check: ${esc(s[2])}</span>`;
+  gStatus.textContent = s ? s[3] : 'Nothing built yet. Click step 1.';
+  document.querySelectorAll('#g-reqbar [data-r]').forEach(b => (b.disabled = n < 7));
+  if (n === 7) gStatus.textContent += ' Everything is built: send a request.';
+}
+const G_REQ = {
+  root: { cmd: 'curl http://example-app-python.com:8080/', path: '/', rh: '✓ matches /', rp: '✕ needs /api', win: 'rh' },
+  api: { cmd: 'curl http://example-app-python.com:8080/api/users', path: '/api/users', rh: '✓ matches', rp: '✓ /api is longer: wins', win: 'rp' },
+  tls: { cmd: 'curl -k https://example-app-python.com:8443/api', path: '/api', rh: '✕ not on https', rp: '✓ on https', win: 'rp', tls: true },
+  bad: { cmd: "curl -H 'Host: nope.com' localhost:8080/", path: '/', rh: '✕ wrong host', rp: '✕ wrong host', win: null }
+};
+function gVerdict(id, txt, cls) {
+  const g = $('#g-' + id);
+  g.classList.remove('win', 'lose');
+  if (cls) g.classList.add(cls);
+  g.querySelector('.route-verdict').textContent = txt || '';
+}
+async function gReq(k) {
+  if (gBusy || gBuilt < 7) return;
+  gBusy = true;
+  document.querySelectorAll('#g-reqbar [data-r]').forEach(b => b.classList.toggle('primary', b.dataset.r === k));
+  const R = G_REQ[k], o = { speed: 0.32 };
+  gVerdict('rh'); gVerdict('rp');
+  gLogEl.innerHTML = `<span class="p">$</span> ${esc(R.cmd)}`;
+  pulse($('#g-curl'));
+  gStatus.textContent = k === 'bad' ? 'localhost → 127.0.0.1, but the Host header says nope.com' : '/etc/hosts: example-app-python.com → 127.0.0.1';
+  await travel(gLayer, 'M123,132 V176', { ...o, label: k === 'bad' ? 'localhost' : 'example-app-python.com' });
+  pulse($('#g-hosts'));
+  await travel(gLayer, 'M123,238 V282', { ...o, label: R.tls ? ':8443' : ':8080' });
+  pulse($('#g-pf'));
+  gStatus.textContent = 'port-forward tunnels the bytes to the Traefik pod';
+  await travel(gLayer, R.tls ? 'M212,330 C 250,330 260,294 296,294' : 'M212,310 C 250,310 260,250 296,250', { ...o, label: k === 'bad' ? 'Host: nope.com' : 'Host: example-app-python.com' });
+  pulse($('#g-tr'));
+  pulse($('#g-gw'));
+  if (R.tls) pulse($('#g-sec'));
+  gStatus.textContent = R.tls ? 'websecure :443 = listener https. TLS decrypted with secret-tls.' : 'web :80 = listener http (matched by port number)';
+  await sleep(700);
+  gStatus.textContent = 'Traefik checks the host and path against each HTTPRoute';
+  gVerdict('rh', R.rh, R.win === 'rh' ? 'win' : 'lose'); await sleep(450);
+  gVerdict('rp', R.rp, R.win === 'rp' ? 'win' : 'lose'); await sleep(650);
+  if (!R.win) {
+    const x = mk('text', { class: 'drop', x: 470, y: 230 }, gLayer); x.textContent = '✕';
+    gStatus.textContent = 'No route matches the Host header → 404 from Traefik';
+    gLogEl.innerHTML += '\n<span class="err">404 page not found</span>';
+    await sleep(1200); x.remove(); gBusy = false; return;
+  }
+  pulse($('#g-svc'));
+  const i = Math.floor(Math.random() * 3), cx = G_PX[i] + 64;
+  gStatus.textContent = `${R.win === 'rh' ? 'route-host' : 'route-path'} → python-app-svc → endpoints → straight to a Pod IP on :8000`;
+  await sleep(400);
+  await travel(gLayer, `M500,340 C 522,340 522,478 548,478 H${cx} V460`, { ...o, label: ':8000' });
+  pulse($('#g-pod' + i));
+  $('#g-pod' + i + ' .t-count').textContent = ++gCounts[i];
+  await travel(gLayer, `M${cx},460 V478 H548 C 522,478 522,340 500,340`, { cls: 'pkt resp', label: '200', speed: 0.5 });
+  await travel(gLayer, (R.tls ? 'M296,294 C 260,294 250,330 212,330' : 'M296,250 C 260,250 250,310 212,310') + ' M123,282 V132', { cls: 'pkt resp', speed: 0.5 });
+  pulse($('#g-curl'));
+  gLogEl.innerHTML += `\n<span class="ok">{"message": "hello from python", "pod": "${G_PODS[i]}", "path": "${R.path}"}</span>`;
+  gStatus.textContent = `200 from ${G_PODS[i]}. Run it again: a different Pod may answer.`;
+  gBusy = false;
+}
+document.querySelectorAll('#g-reqbar [data-r]').forEach(b => (b.onclick = () => gReq(b.dataset.r)));
+$('#g-reset').onclick = () => { if (gBusy) return; gVerdict('rh'); gVerdict('rp'); gLogEl.innerHTML = ''; gBuild(0); };
+gBuild(0);
+
+/* ================= gateway: break a link ================= */
+const LINKS = [
+  ['Traefik', 'controllerName', 'GatewayClass', 'GatewayClass ACCEPTED never turns True', 'kubectl get gatewayclass'],
+  ['Gateway', 'gatewayClassName: traefik', 'GatewayClass', 'Gateway never PROGRAMMED', 'kubectl get gateway'],
+  ['Gateway listener', 'port 80 / 443', 'Traefik entrypoint', 'Listener gets no traffic: every request 404', 'values.yaml ports vs gateway.yml'],
+  ['Gateway', 'certificateRefs', 'Secret secret-tls', 'Gateway Accepted=False · ListenersNotValid (http breaks too)', 'kubectl describe gateway gateway-api'],
+  ['HTTPRoute', 'parentRefs + sectionName', 'Gateway listener', 'Route Accepted=False', 'kubectl describe httproute'],
+  ['HTTPRoute', 'hostnames', 'Host header', '404 page not found', 'curl -v, /etc/hosts'],
+  ['HTTPRoute', 'backendRefs name + port', 'Service', 'ResolvedRefs=False · BackendNotFound → 500', 'kubectl describe httproute'],
+  ['Service', 'selector', 'Pod labels', 'No endpoints → 503', 'kubectl get endpointslices'],
+  ['Service', 'targetPort 8000', 'containerPort', '502 Bad Gateway', 'service.yml vs deployment.yml'],
+  ['Deployment', 'image python-app:1.0', 'kind load', 'ErrImagePull / ImagePullBackOff', 'kubectl get pods']
+];
+const lk = $('#lk');
+LINKS.forEach(([a, f, b, sym, where], i) => {
+  const r = document.createElement('button');
+  r.type = 'button'; r.className = 'lk-row';
+  r.innerHTML = `<span class="pill">${esc(a)}</span><span class="lk-line"><i>${esc(f)}</i></span><span class="pill">${esc(b)}</span>`;
+  r.onclick = () => {
+    const on = !r.classList.contains('broken');
+    lk.querySelectorAll('.lk-row').forEach(x => x.classList.remove('broken'));
+    if (on) { r.classList.add('broken'); $('#lk-out').innerHTML = `<span style="color:var(--danger)">✕ ${esc(sym)}</span> · check: <code>${esc(where)}</code>`; }
+    else $('#lk-out').textContent = 'Each row is a field that must equal a value somewhere else.';
+  };
+  lk.append(r);
+});
+
+/* ================= gateway: files ================= */
+const GF = {"playbook.sh": "#!/usr/bin/env bash\n# Gateway API lab: kind + Traefik + python-app.\n#   ./playbook.sh up      build everything (safe to re-run)\n#   ./playbook.sh test    curl the app through Traefik from inside the cluster\n#   ./playbook.sh status  show the state of every component\n#   ./playbook.sh down    delete the cluster\nset -euo pipefail\ncd \"$(dirname \"$0\")\"\n\nCLUSTER=\"${CLUSTER:-gatewayapi}\"\nGATEWAY_API_VERSION=\"v1.4.1\"\nCHART_VERSION=\"37.3.0\" # Traefik v3.6.0. Charts 38+ reject 02-traefik/values.yaml\nHOST=\"example-app-python.com\"\nCTX=\"kind-${CLUSTER}\"\nk() { kubectl --context \"$CTX\" \"$@\"; }\nstep() { printf '\\n\\033[1m==> %s\\033[0m\\n' \"$*\"; }\n\nup() {\n  step \"1. kind cluster '$CLUSTER'\"\n  if kind get clusters | grep -qx \"$CLUSTER\"; then\n    echo \"already exists\"\n  else\n    kind create cluster --name \"$CLUSTER\" --config 01-cluster/kind.yaml\n  fi\n\n  step \"2. Gateway API CRDs $GATEWAY_API_VERSION\"\n  k apply --server-side -f \"https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml\"\n\n  step \"3. Traefik (Helm chart $CHART_VERSION)\"\n  helm repo add traefik https://traefik.github.io/charts --force-update >/dev/null\n  helm repo update traefik >/dev/null\n  # --server-side=false: Helm 4 would otherwise fight kubectl over the Gateway API CRDs from step 2\n  helm upgrade --install traefik traefik/traefik \\\n    --kube-context \"$CTX\" \\\n    --version \"$CHART_VERSION\" \\\n    --values 02-traefik/values.yaml \\\n    --namespace traefik \\\n    --create-namespace \\\n    --server-side=false\n  k -n traefik rollout status deploy/traefik --timeout=180s\n\n  step \"4. TLS secret + GatewayClass + Gateway\"\n  if ! k get secret secret-tls >/dev/null 2>&1; then\n    tmp=\"$(mktemp -d)\"\n    openssl req -x509 -nodes -newkey rsa:2048 -days 365 \\\n      -keyout \"$tmp/tls.key\" -out \"$tmp/tls.crt\" \\\n      -subj \"/CN=$HOST\" -addext \"subjectAltName=DNS:$HOST\" 2>/dev/null\n    k create secret tls secret-tls --cert=\"$tmp/tls.crt\" --key=\"$tmp/tls.key\"\n    rm -rf \"$tmp\"\n  fi\n  k apply -f 03-gateway/\n  k wait --for=condition=Programmed gateway/gateway-api --timeout=90s\n\n  step \"5. python-app: build image, load into kind, deploy\"\n  docker build -q -t python-app:1.0 04-app/\n  kind load docker-image python-app:1.0 --name \"$CLUSTER\"\n  k apply -f 04-app/\n  k rollout status deploy/python-app --timeout=120s\n\n  step \"6. HTTPRoutes\"\n  k apply -f 05-routes/\n  k wait --for=jsonpath='{.status.parents[0].conditions[?(@.type==\"Accepted\")].status}'=True \\\n    httproute/python-route-host httproute/python-route-path --timeout=60s\n\n  step \"Done. Next: ./playbook.sh test\"\n}\n\ntest() {\n  step \"curl through Traefik (in-cluster, Host header = $HOST)\"\n  k run curl-test --rm -i --restart=Never --quiet --image=curlimages/curl -- sh -c \"\n    echo '--- http  /        (route-host)';  curl -s -H 'Host: $HOST' http://traefik.traefik/;        echo\n    echo '--- http  /api/x   (route-path)';  curl -s -H 'Host: $HOST' http://traefik.traefik/api/x;   echo\n    echo '--- https /api     (route-path, TLS)'; curl -sk --resolve $HOST:443:\\$(getent hosts traefik.traefik | cut -d' ' -f1) https://$HOST/api; echo\n    echo '--- http  wrong host -> 404'; curl -s -o /dev/null -w '%{http_code}' -H 'Host: nope.com' http://traefik.traefik/; echo\n  \"\n}\n\nstatus() {\n  k get gatewayclass,gateway,httproute -A\n  echo; k get deploy,svc -n default\n  echo; k get deploy,svc -n traefik\n}\n\ndown() {\n  kind delete cluster --name \"$CLUSTER\"\n}\n\n\"${1:-up}\"", "01-cluster/kind.yaml": "# Single-node kind cluster for the Gateway API lab.\n# Create:  kind create cluster --name gatewayapi --config 01-cluster/kind.yaml\nkind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnodes:\n  - role: control-plane\n    image: kindest/node:v1.34.0", "02-traefik/values.yaml": "# Helm values for the Traefik chart, version 37.3.0 (Traefik v3.6.0).\n# Newer charts (38+) use a different schema - keep the version pinned.\n\n# access logs: one line per request in `kubectl logs -n traefik deploy/traefik`\nlogs:\n  access:\n    enabled: true\n\n# entrypoints. Traefik maps a Gateway listener to the entrypoint with the SAME port,\n# so these must match the listener ports in 03-gateway/gateway.yml (80 / 443).\nports:\n  web:\n    port: 80\n  websecure:\n    port: 443\n    exposedPort: 443\n\n# turn on the Gateway API provider (Traefik watches Gateway / HTTPRoute objects)\nproviders:\n  kubernetesGateway:\n    enabled: true\n    experimentalChannel: false\n\n# we disable the chart's default GatewayClass and Gateway because we provide our own (03-gateway/)\ngatewayClass:\n  enabled: false\n\ngateway:\n  enabled: false", "03-gateway/gatewayclass.yml": "# GatewayClass = \"which controller implements Gateways of this class\".\n# Cluster-scoped (no namespace). controllerName must match what Traefik registers.\napiVersion: gateway.networking.k8s.io/v1\nkind: GatewayClass\nmetadata:\n  name: traefik\nspec:\n  controllerName: traefik.io/gateway-controller", "03-gateway/gateway.yml": "# Gateway = the entry point: which ports/protocols to listen on and who may attach routes.\napiVersion: gateway.networking.k8s.io/v1\nkind: Gateway\nmetadata:\n  name: gateway-api\n  namespace: default\nspec:\n  gatewayClassName: traefik # -> 03-gateway/gatewayclass.yml\n\n  listeners:\n    - name: http # HTTPRoutes pick this with sectionName: http\n      protocol: HTTP\n      port: 80 # must match Traefik's `web` entrypoint port (02-traefik/values.yaml)\n      allowedRoutes:\n        namespaces:\n          from: All # Same (default) | All | Selector\n\n    - name: https\n      protocol: HTTPS\n      port: 443 # must match Traefik's `websecure` entrypoint port\n      tls:\n        mode: Terminate # Traefik decrypts TLS, sends plain HTTP to the pods\n        certificateRefs:\n          - name: secret-tls # created by the playbook (step 3), must exist or the Gateway is rejected\n            namespace: default\n      allowedRoutes:\n        namespaces:\n          from: All", "04-app/app.py": "import json\nimport os\nimport socket\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\nPORT = int(os.environ.get(\"PORT\", 8000))\n\n\nclass Handler(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == \"/health\":\n            body = {\"status\": \"ok\"}\n        else:\n            # hostname = pod name, handy to see load balancing across replicas\n            body = {\"message\": \"hello from python\", \"pod\": socket.gethostname(), \"path\": self.path}\n        data = json.dumps(body).encode()\n        self.send_response(200)\n        self.send_header(\"Content-Type\", \"application/json\")\n        self.send_header(\"Content-Length\", str(len(data)))\n        self.end_headers()\n        self.wfile.write(data)\n\n\nif __name__ == \"__main__\":\n    print(f\"listening on :{PORT}\", flush=True)\n    HTTPServer((\"0.0.0.0\", PORT), Handler).serve_forever()", "04-app/Dockerfile": "FROM python:3.13-slim\nWORKDIR /app\nCOPY app.py .\nENV PYTHONUNBUFFERED=1\nEXPOSE 8000\nCMD [\"python\", \"app.py\"]", "04-app/deployment.yml": "# Deployment = keeps 3 python-app pods running.\n# The image is built locally and loaded into kind (no registry): see playbook step 4.\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: python-app\n  namespace: default\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: python-app\n  template:\n    metadata:\n      labels:\n        app: python-app # Service selector matches this label\n    spec:\n      containers:\n        - name: python-app\n          image: python-app:1.0\n          imagePullPolicy: IfNotPresent # use the image loaded into kind, don't pull\n          ports:\n            - containerPort: 8000\n          readinessProbe:\n            httpGet:\n              path: /health\n              port: 8000\n          livenessProbe:\n            httpGet:\n              path: /health\n              port: 8000", "04-app/service.yml": "# Service (ClusterIP) = one stable in-cluster address for the pods. Port 80 -> container 8000.\napiVersion: v1\nkind: Service\nmetadata:\n  name: python-app-svc\n  namespace: default\nspec:\n  type: ClusterIP\n  selector:\n    app: python-app\n  ports:\n    - port: 80\n      targetPort: 8000", "05-routes/route-host.yml": "# HTTPRoute (host based): every path on example-app-python.com -> python-app-svc\napiVersion: gateway.networking.k8s.io/v1\nkind: HTTPRoute\nmetadata:\n  name: python-route-host # each route needs its own name, or applying one replaces the other\n  namespace: default # same namespace as the Service it targets\n\nspec:\n  parentRefs:\n    - name: gateway-api\n      namespace: default\n      sectionName: http # attach to the `http` listener only\n      kind: Gateway\n\n  hostnames:\n    - example-app-python.com # matched against the Host header\n\n  rules:\n    - backendRefs:\n        - name: python-app-svc\n          port: 80\n          weight: 1", "05-routes/route-path.yml": "# HTTPRoute (path based): only /api/* on example-app-python.com, over both listeners.\n# If route-host.yml is applied too, the most specific match (/api) wins for /api requests.\napiVersion: gateway.networking.k8s.io/v1\nkind: HTTPRoute\nmetadata:\n  name: python-route-path\n  namespace: default\n\nspec:\n  parentRefs:\n    - name: gateway-api\n      namespace: default\n      sectionName: http\n      kind: Gateway\n    - name: gateway-api\n      namespace: default\n      sectionName: https # also served over TLS\n      kind: Gateway\n\n  hostnames:\n    - example-app-python.com\n\n  rules:\n    - matches:\n        - path:\n            type: PathPrefix # /api, /api/, /api/users ... (Exact would allow only /api)\n            value: /api\n      backendRefs:\n        - name: python-app-svc\n          port: 80\n          weight: 1"};
+const gfTabs = $('#gf-tabs');
+Object.keys(GF).forEach((name, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = name.split('/').pop(); b.title = name;
+  b.onclick = () => {
+    gfTabs.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#gf-pre').innerHTML = `<span class="dim"># gateway/${esc(name)}</span>\n` + esc(GF[name]).replace(/(^|\n)(\s*#[^\n]*)/g, '$1<span class="dim">$2</span>');
+  };
+  gfTabs.append(b);
+  if (!i) b.click();
+});
 
 /* ================= deployments: copy commands ================= */
 document.querySelectorAll('.cmd-row').forEach(b => {
