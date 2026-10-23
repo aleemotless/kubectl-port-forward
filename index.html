@@ -206,7 +206,6 @@ pre.code { margin: 0; background: var(--code-bg); color: var(--code-fg); font: 0
 .term-log { margin: 0; background: var(--code-bg); color: var(--code-fg); font: 0.78rem/1.7 var(--f-mono); padding: 12px 16px; min-height: 8.6em; overflow-x: auto; border-top: 1px solid var(--line); }
 .term-log .err { color: #FF8A7E; }
 .term-log .ok { color: #7FD9A6; }
-.callout { border-left: 3px solid var(--signal); padding: 4px 0 4px 14px; color: var(--ink); }
 
 /* ---------- builder ---------- */
 .builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -245,9 +244,6 @@ tr.me td { background: color-mix(in srgb, var(--signal) 8%, transparent); }
 .err-card p { font-size: 0.93rem; color: var(--muted); }
 .err-card p b { color: var(--ink); }
 
-.cheats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.cheat { display: grid; gap: 6px; min-width: 0; }
-.cheat span { font-size: 0.88rem; color: var(--muted); }
 
 footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
 
@@ -259,7 +255,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
   .parts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
-  .parts, .errors, .cheats, .form { grid-template-columns: minmax(0, 1fr); }
+  .parts, .errors, .form { grid-template-columns: minmax(0, 1fr); }
   .anatomy { padding: 20px; }
   .detail { padding: 18px; }
 }
@@ -277,7 +273,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
   <div>
     <div class="eyebrow">Kubernetes networking · kubectl</div>
     <h1 style="margin-top:18px"><span class="cmd">kubectl port-forward</span>A private tunnel from localhost into one Pod.</h1>
-    <p class="lede">Your Pod has no public address, and you don't want to give it one just to poke at it. Port-forward borrows the connection you already have to the API server and threads a TCP tunnel through it, all the way into the Pod's network namespace.</p>
+    <p class="lede">kubectl tunnels a local port through the API server and kubelet into the Pod. No Service, no public IP.</p>
     <ul class="facts">
       <li><b>TCP</b> only</li>
       <li>binds <b>127.0.0.1</b> by default</li>
@@ -303,7 +299,7 @@ Forwarding from [::1]:8080 -&gt; 80
   <header class="prose">
     <div class="eyebrow">The journey of one request</div>
     <h2>Seven hops from your browser to nginx</h2>
-    <p>Pick a step, or press <b>Play all</b>. The amber dot is your request; the teal pipe is the tunnel. Watch which parts exist before you ever type a URL.</p>
+    <p>Click a step or press <b>Play all</b>. Amber is the request, teal is the tunnel.</p>
   </header>
 
   <div class="figure">
@@ -420,7 +416,7 @@ Forwarding from [::1]:8080 -&gt; 80
 <section>
   <header class="prose">
     <div class="eyebrow">Anatomy of the command</div>
-    <h2>Read it left to right: where, what, and which two ports</h2>
+    <h2>The command, part by part</h2>
   </header>
   <div class="anatomy">
     <div class="cmdline" id="cmdline">
@@ -431,12 +427,12 @@ Forwarding from [::1]:8080 -&gt; 80
       <span data-k="f" style="--c: var(--ok)">--address 127.0.0.1</span>
     </div>
     <ul class="parts" id="parts">
-      <li data-k="a" style="--c: var(--muted)"><b>kubectl port-forward</b><p>Runs in the foreground. The tunnel exists only while this process does; Ctrl-C closes it.</p></li>
-      <li data-k="b" style="--c: var(--k8s)"><b>-n default</b><p>Namespace of the target. Leave it out and kubectl uses your current context's namespace.</p></li>
-      <li data-k="c" style="--c: var(--k8s)"><b>pod/nginx-pod1</b><p>The target. <code>deploy/</code>, <code>rs/</code>, <code>sts/</code> and <code>svc/</code> work too, but kubectl resolves them to a single Pod first.</p></li>
-      <li data-k="d" style="--c: var(--signal)"><b>8080</b> local port<p>Opened on your machine. Write <code>:80</code> to get a random free port, or just <code>80</code> to use the same number on both sides.</p></li>
-      <li data-k="e" style="--c: var(--tunnel)"><b>80</b> remote port<p>The port inside the Pod: your <code>containerPort</code>. With <code>svc/</code>, it is the Service port, which kubectl maps to the <code>targetPort</code>.</p></li>
-      <li data-k="f" style="--c: var(--ok)"><b>--address</b><p>Which local interfaces to bind. The default <code>localhost</code> means 127.0.0.1 and ::1, so only you can connect. <code>0.0.0.0</code> opens it to your network.</p></li>
+      <li data-k="a" style="--c: var(--muted)"><b>kubectl port-forward</b><p>Runs in the foreground. Ctrl-C closes the tunnel.</p></li>
+      <li data-k="b" style="--c: var(--k8s)"><b>-n default</b><p>Namespace. Defaults to your current context's.</p></li>
+      <li data-k="c" style="--c: var(--k8s)"><b>pod/nginx-pod1</b><p>Target. <code>deploy/</code>, <code>sts/</code>, <code>svc/</code> also work, but resolve to one Pod.</p></li>
+      <li data-k="d" style="--c: var(--signal)"><b>8080</b> local port<p>On your machine. <code>:80</code> picks a random one. Add more pairs for more ports.</p></li>
+      <li data-k="e" style="--c: var(--tunnel)"><b>80</b> remote port<p>Port inside the Pod. For <code>svc/</code>, the Service port.</p></li>
+      <li data-k="f" style="--c: var(--ok)"><b>--address</b><p>Default <code>localhost</code>: only you. <code>0.0.0.0</code>: your whole network.</p></li>
     </ul>
   </div>
 </section>
@@ -447,9 +443,7 @@ Forwarding from [::1]:8080 -&gt; 80
     <div class="prose">
       <div class="eyebrow">Inside the pipe</div>
       <h2>One tunnel, many streams</h2>
-      <p>kubectl dials the API server once. Every TCP connection you open to <code>localhost:8080</code> becomes a new <b>pair of streams</b> inside that single connection:</p>
-      <p><b>data</b> carries your bytes in both directions. <b>error</b> is a side channel where the Pod's end reports problems such as "connection refused".</p>
-      <p>Each stream carries headers that name the remote <code>port</code> and a <code>requestID</code>, so the far side can keep the conversations apart. Add connections to see them pile up.</p>
+      <p>One connection to the API server. Each local TCP connection adds a <b>data</b> + <b>error</b> stream pair inside it, tagged with the port and a request ID.</p>
     </div>
     <div class="figure">
       <div class="scroll-x">
@@ -471,7 +465,7 @@ Forwarding from [::1]:8080 -&gt; 80
   <header class="prose">
     <div class="eyebrow">The Service trap</div>
     <h2><code style="font-size:0.85em">svc/web</code> does not mean load balancing</h2>
-    <p>When you forward to a Service, kubectl only uses it as a lookup. It reads the selector, picks one running Pod, and tunnels straight to it. kube-proxy and the ClusterIP never see your traffic. Compare that with how traffic reaches a Service from inside the cluster, then delete the Pod that's serving.</p>
+    <p>kubectl uses the Service only to find a Pod, then tunnels to that one Pod. Try deleting it.</p>
   </header>
   <div class="figure">
     <div class="scroll-x">
@@ -551,7 +545,6 @@ Forwarding from [::1]:8080 -&gt; 80
     </div>
     <pre class="term-log" id="sv-log" aria-live="polite"></pre>
   </div>
-  <p class="callout prose">Port-forward is a debugging tool, not an exposure method. If the Pod restarts, gets rescheduled, or is replaced by a rollout, kubectl prints <code>lost connection to pod</code> and exits. It never reconnects on its own.</p>
 </section>
 
 <!-- ================= DEPLOYMENT ================= -->
@@ -559,7 +552,7 @@ Forwarding from [::1]:8080 -&gt; 80
   <header class="prose">
     <div class="eyebrow">Forwarding to a Deployment</div>
     <h2><code style="font-size:0.85em">deploy/nginx-deployment</code> still ends at one Pod</h2>
-    <p>Your <code>deploy.yml</code> asks for 3 replicas. kubectl walks from the Deployment to its selector, lists the matching Pods, picks one running Pod, and opens the tunnel to that Pod by name. The Deployment and ReplicaSet never carry a byte. The manifest declares no <code>containerPort</code>, and port-forward doesn't need one: it dials port 80 inside the Pod directly.</p>
+    <p>3 replicas, 1 tunnel. kubectl follows the selector, picks one Pod, and stays on it until that Pod dies.</p>
   </header>
   <div class="figure">
     <div class="scroll-x">
@@ -636,14 +629,13 @@ Forwarding from [::1]:8080 -&gt; 80
     </div>
     <pre class="term-log" id="dp-log" aria-live="polite"></pre>
   </div>
-  <p class="callout prose">Scaling up, rolling out a new image, or <code>kubectl rollout restart</code> all replace Pods. The forward stays pinned to the Pod it picked at start, so the first time that Pod is terminated, kubectl exits.</p>
 </section>
 
 <!-- ================= BUILDER ================= -->
 <section>
   <header class="prose">
     <div class="eyebrow">Build your command</div>
-    <h2>Fill in the blanks, get the command and what it will print</h2>
+    <h2>Your command and its output</h2>
   </header>
   <div class="builder">
     <form class="form" id="bf" autocomplete="off">
@@ -719,31 +711,28 @@ Forwarding from [::1]:8080 -&gt; 80
   </header>
   <div class="errors">
     <div class="err-card">
-      <h3>Local port already taken</h3>
-<pre>Unable to listen on port 8080: Listeners failed to create with the following errors: [unable to create listener: Error listen tcp4 127.0.0.1:8080: bind: address already in use]
-error: unable to listen on any of the requested ports: [{8080 80}]</pre>
-      <p><b>Fix:</b> something else owns 8080 on your machine. Pick another local port (<code>9090:80</code>) or find the culprit with <code>lsof -i :8080</code>.</p>
+      <h3>Local port taken</h3>
+<pre>error: unable to listen on any of the requested ports: [{8080 80}]</pre>
+      <p><b>Fix:</b> use another local port, or find the owner: <code>lsof -i :8080</code>.</p>
     </div>
     <div class="err-card">
-      <h3>Nothing listening inside the Pod</h3>
-<pre>an error occurred forwarding 8080 -> 80: error forwarding port 80 to pod …: failed to connect to localhost:80 inside namespace …: connect: connection refused</pre>
-      <p><b>Fix:</b> the tunnel works, the app doesn't. The remote port is wrong or the process hasn't started. Check with <code>kubectl logs</code> and the <code>containerPort</code>.</p>
+      <h3>Nothing listening in the Pod</h3>
+<pre>failed to connect to localhost:80 inside namespace …: connect: connection refused</pre>
+      <p><b>Fix:</b> wrong remote port, or the app isn't up. Check <code>kubectl logs</code>.</p>
     </div>
     <div class="err-card">
-      <h3>Forbidden by RBAC</h3>
-<pre>error: error upgrading connection: pods "nginx-pod1" is forbidden: User "dev" cannot create resource "pods/portforward" in API group "" in the namespace "default"</pre>
-      <p><b>Fix:</b> grant <code>create</code> on <code>pods/portforward</code>, plus <code>get</code> on <code>pods</code>. Test with <code>kubectl auth can-i create pods/portforward</code>.</p>
+      <h3>Forbidden</h3>
+<pre>User "dev" cannot create resource "pods/portforward" in the namespace "default"</pre>
+      <p><b>Fix:</b> grant the Role below. Check with <code>kubectl auth can-i create pods/portforward</code>.</p>
     </div>
     <div class="err-card">
       <h3>Pod went away</h3>
-<pre>Handling connection for 8080
-error: lost connection to pod</pre>
-      <p><b>Fix:</b> the Pod restarted, was evicted, or a rollout replaced it. Run the command again. For a long-lived loop, wrap it: <code>while true; do kubectl port-forward …; sleep 1; done</code>.</p>
+<pre>error: lost connection to pod</pre>
+      <p><b>Fix:</b> run the command again. It never reconnects by itself.</p>
     </div>
   </div>
   <div class="codewrap prose" style="max-width:100%">
-<pre class="code" data-copy># Minimal Role that lets a user port-forward in one namespace
-apiVersion: rbac.authorization.k8s.io/v1
+<pre class="code" data-copy">apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: port-forwarder
@@ -758,25 +747,8 @@ rules:
   </div>
 </section>
 
-<!-- ================= CHEAT SHEET ================= -->
-<section>
-  <header class="prose">
-    <div class="eyebrow">Cheat sheet</div>
-    <h2>Commands worth keeping</h2>
-  </header>
-  <div class="cheats">
-    <div class="cheat"><span>Forward to the Pod from <code>pod.yaml</code></span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 8080:80</pre></div></div>
-    <div class="cheat"><span>Let kubectl choose a free local port</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 :80</pre></div></div>
-    <div class="cheat"><span>Several ports in one tunnel</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 8080:80 8443:443</pre></div></div>
-    <div class="cheat"><span>Reach a database in another namespace</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward -n db svc/postgres 5432:5432</pre></div></div>
-    <div class="cheat"><span>Share with your LAN (careful)</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward --address 0.0.0.0 pod/nginx-pod1 8080:80</pre></div></div>
-    <div class="cheat"><span>Run it in the background, stop it later</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 8080:80 &gt;/dev/null 2&gt;&amp;1 &amp;
-kill %1</pre></div></div>
-  </div>
-</section>
-
 <footer>
-  Request path and stream behavior follow upstream Kubernetes: kubectl 1.31+ speaks WebSocket to the API server by default (older clusters fall back to SPDY). Port-forward carries TCP only; UDP is not supported.
+  kubectl 1.31+ uses WebSocket to the API server; older clusters use SPDY.
 </footer>
 </div>
 
@@ -837,7 +809,7 @@ const ALL = ['browser', 'listener', 'kubectl', 'api', 'rbac', 'kubelet', 'runtim
 const STEPS = [
   {
     t: 'kubectl asks the API server for a tunnel', hl: ['kubectl', 'api', 'rbac'],
-    b: 'kubectl reads your kubeconfig and sends a request to the Pod\'s <code>portforward</code> subresource, asking to upgrade the connection. The API server authenticates you and checks RBAC for the verb <code>create</code> on <code>pods/portforward</code>. No local port is open yet.',
+    b: 'kubectl POSTs to the Pod\'s <code>portforward</code> subresource. The API server checks you may <code>create pods/portforward</code>.',
     c: `<span class="dim"># kubectl → kube-apiserver (TLS)</span>
 POST /api/v1/namespaces/default/pods/nginx-pod1/portforward
 Connection: Upgrade
@@ -854,14 +826,14 @@ Sec-WebSocket-Protocol: SPDY/3.1+portforward.k8s.io`,
   },
   {
     t: 'The API server dials the kubelet', hl: ['api', 'kubelet'],
-    b: 'The API server looks up which node runs <code>nginx-pod1</code> and opens a connection to that node\'s kubelet on port 10250. From now on it proxies bytes in both directions, so the API server stays in the path for the whole session.',
+    b: 'It connects to the kubelet on the Pod\'s node (port 10250) and stays in the path for the whole session.',
     c: `<span class="dim"># kube-apiserver → kubelet on node-1</span>
 POST https://node-1:10250/portForward/default/nginx-pod1`,
     go: async ok => { await ok(travel(jLayer, SEG.ak, { alive: ok.alive })); pulse(C('kubelet')); }
   },
   {
     t: 'The kubelet hands off to the container runtime', hl: ['kubelet', 'runtime', 'pod'],
-    b: 'The kubelet calls the runtime\'s CRI <code>PortForward</code> method. containerd (or CRI-O) knows the Pod sandbox and its network namespace, so it is the one that will eventually open the TCP connection to your app.',
+    b: 'The kubelet calls CRI <code>PortForward</code>. containerd owns the Pod\'s network namespace, so it opens the final connection.',
     c: `<span class="dim"># kubelet → containerd (CRI, gRPC)</span>
 PortForward(PortForwardRequest{
   pod_sandbox_id: "3f1c9a…",
@@ -874,7 +846,7 @@ PortForward(PortForwardRequest{
   },
   {
     t: 'kubectl opens the local port', hl: ['listener', 'kubectl'],
-    b: 'Only after the tunnel is up does kubectl bind <code>127.0.0.1:8080</code> and <code>[::1]:8080</code>. These are the two lines it prints. The socket belongs to the kubectl process, which is why closing the terminal closes the port.',
+    b: 'Only now does kubectl bind <code>127.0.0.1:8080</code>. Close the terminal and the port closes.',
     c: `<span class="p">$</span> kubectl port-forward pod/nginx-pod1 8080:80
 Forwarding from 127.0.0.1:8080 -> 80
 Forwarding from [::1]:8080 -> 80`,
@@ -882,7 +854,7 @@ Forwarding from [::1]:8080 -> 80`,
   },
   {
     t: 'Your browser connects', hl: ['browser', 'listener', 'kubectl'],
-    b: 'The browser connects to localhost:8080 like any local server. kubectl accepts the connection and creates a new pair of streams inside the tunnel, one for data and one for errors, labelled with the remote port and a request ID.',
+    b: 'kubectl accepts the connection and opens a data + error stream pair in the tunnel.',
     c: `Handling connection for 8080
 <span class="dim"># new streams inside the tunnel</span>
 streamType: error   port: 80   requestID: 0
@@ -894,7 +866,7 @@ streamType: data    port: 80   requestID: 0`,
   },
   {
     t: 'Bytes ride the tunnel into the Pod', hl: ['browser', 'listener', 'kubectl', 'api', 'kubelet', 'runtime', 'pod', 'nginx'],
-    b: 'Your request flows down the data stream through the API server and kubelet. The runtime dials <code>localhost:80</code> from inside the Pod\'s network namespace and copies the bytes in. No Service, no kube-proxy, and no route to the Pod IP are involved. It even reaches apps that listen only on 127.0.0.1 inside the Pod.',
+    b: 'The runtime dials <code>localhost:80</code> inside the Pod. No Service or kube-proxy involved.',
     c: `GET / HTTP/1.1
 Host: localhost:8080
 User-Agent: curl/8.7.1
@@ -908,7 +880,7 @@ Accept: */*`,
   },
   {
     t: 'The response comes back the same way', hl: ['browser', 'listener', 'kubectl', 'api', 'kubelet', 'runtime', 'pod', 'nginx'],
-    b: 'nginx answers on the same connection. The bytes travel back up the data stream, out of the tunnel, and kubectl writes them to your browser\'s socket. The tunnel stays open for the next connection until you press Ctrl-C.',
+    b: 'Same path in reverse. The tunnel stays open until Ctrl-C.',
     c: `HTTP/1.1 200 OK
 Server: nginx/1.27.2
 Content-Type: text/html
@@ -950,8 +922,8 @@ function paint(i) {
   });
   if (overview) {
     $('#d-kicker').textContent = 'Overview';
-    $('#d-title').textContent = 'The whole path, once it is established';
-    $('#d-body').innerHTML = 'Three processes stand between your laptop and the container: the API server, the kubelet, and the container runtime. The tunnel is built first, from kubectl inward. Your traffic only flows once it exists. Press <b>Play all</b> to watch it get built.';
+    $('#d-title').textContent = 'The whole path';
+    $('#d-body').innerHTML = 'kubectl → API server → kubelet → container runtime → Pod. The tunnel is built first; traffic flows after.';
     $('#d-code').innerHTML = `<span class="p">$</span> kubectl port-forward pod/nginx-pod1 8080:80\n<span class="p">$</span> curl localhost:8080`;
   } else {
     $('#d-kicker').textContent = `Step ${i + 1} of ${STEPS.length}`;
@@ -1264,7 +1236,6 @@ function build() {
   const n = parseInt(lp, 10);
   if (n && n < 1024) notes.push(['warn', 'On Linux, local ports below 1024 need root. Pick 8080 or higher.']);
   if ((lp && !/^\d+$/.test(lp)) || !/^\d+$/.test(rp) || n > 65535) notes.push(['warn', 'Ports must be numbers between 1 and 65535.']);
-  notes.push(['', 'TCP only. UDP services such as DNS cannot be forwarded.']);
   $('#b-notes').innerHTML = notes.map(([c, t]) => `<li class="${c}">${t}</li>`).join('');
 }
 $('#bf').addEventListener('input', build);
