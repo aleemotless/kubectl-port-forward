@@ -406,6 +406,57 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
 .mini p { color: var(--muted); font-size: 0.88rem; }
 @media (max-width: 860px) { .minis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .minis { grid-template-columns: minmax(0, 1fr); } }
+/* ---------- ingress ---------- */
+#why .lb-only, #why .ing-only { transition: opacity 0.35s; }
+#why[data-mode="lb"] .ing-only, #why[data-mode="ing"] .lb-only { opacity: 0.08; }
+.ctl-grid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px; padding: 20px 22px; align-items: center; }
+#loop { width: 100%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
+.loop-ring { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: 6 6; }
+.loop-node circle { fill: var(--surface); stroke: var(--k8s); stroke-width: 2; transition: fill 0.3s; }
+.loop-node text { font: 700 12px var(--f-mono); fill: var(--ink); }
+.loop-node.on circle { fill: color-mix(in srgb, var(--k8s) 22%, var(--surface)); }
+.loop-dot { fill: var(--signal); stroke: var(--surface); stroke-width: 2.5; }
+.ctl-side { display: grid; gap: 16px; min-width: 0; }
+.cm { border: 1.5px solid var(--k8s); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; background: color-mix(in srgb, var(--k8s) 5%, var(--surface)); }
+.k { font: 700 0.66rem var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.cm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-chips span { font: 600 0.72rem var(--f-mono); padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); transition: background 0.3s, border-color 0.3s; }
+.cm-chips span.tick { border-color: var(--k8s); background: color-mix(in srgb, var(--k8s) 18%, var(--surface)); }
+.cm-chips span.missing { border-style: dashed; border-color: var(--danger); color: var(--danger); background: none; }
+.ctl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.obj { flex: 1 1 200px; border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 13px; display: grid; gap: 3px; background: var(--paper); transition: all 0.4s; min-width: 0; }
+.obj b { font: 600 0.86rem var(--f-mono); }
+.obj > span:last-child { font: 0.75rem var(--f-mono); color: var(--muted); }
+.obj.ghost { border-style: dashed; opacity: 0.55; }
+.obj.idle { border-color: var(--muted); }
+.obj.idle > span:last-child { color: var(--danger); }
+.obj.live { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, var(--surface)); }
+.obj.live > span:last-child { color: var(--ok); }
+.obj.boot { border-color: var(--signal); border-style: dashed; opacity: 1; }
+#c-arrow { transition: color 0.3s; }
+#c-arrow.on { color: var(--ok); animation: pop 0.5s; }
+#fold [data-f] { transition: opacity 0.35s; }
+#fold:not([data-f="all"]) [data-f]:not([data-f="all"]) { opacity: 0.18; }
+#fold[data-f="cluster"] [data-f="cluster"], #fold[data-f="deploy"] [data-f="deploy"],
+#fold[data-f="ingress"] [data-f="ingress"], #fold[data-f="nginx"] [data-f="nginx"] { opacity: 1; }
+.wdot { transition: opacity 0.6s, transform 0.6s; transform-box: fill-box; transform-origin: center; }
+.wdot.old { opacity: 0.25; }
+.wdot.gone { opacity: 0; transform: scale(0.3); }
+.t-legend { font: 600 0.78rem var(--f-mono); color: var(--muted); }
+.rules { display: grid; gap: 8px; padding: 16px 22px; }
+.rule { display: grid; grid-template-columns: 150px 120px 80px minmax(0, 1fr); gap: 10px; align-items: center; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); font: 600 0.82rem var(--f-mono); transition: all 0.25s; }
+.rule .m { color: var(--muted); font-weight: 500; }
+.rule.check { border-color: var(--signal); background: color-mix(in srgb, var(--signal) 10%, var(--surface)); }
+.rule.no { opacity: 0.4; }
+.rule.cand { border-color: var(--k8s); }
+.rule.win { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--surface)); animation: pop 0.4s; }
+.rule.head { border: 0; background: none; font: 600 0.68rem var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding-block: 0; }
+.mini.warn { border-color: var(--danger); }
+.mini.warn b { color: var(--danger); }
+@media (max-width: 700px) {
+  .ctl-grid { grid-template-columns: minmax(0, 1fr); }
+  .rule { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -832,6 +883,269 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
     <button class="cmd-row"><code>kubectl exec curl-pod -- curl -s nginx-svc</code><span>Test from inside the cluster</span></button>
     <button class="cmd-row"><code>kubectl exec curl-pod -- nslookup nginx-svc</code><span>See what DNS returns</span></button>
     <button class="cmd-row"><code>docker exec kind-worker iptables-save -t nat | grep nginx-svc</code><span>See the rules on a kind node</span></button>
+  </div>
+</section>
+</article>
+
+<!-- ================= TOPIC: INGRESS ================= -->
+<article id="ingress" data-topic data-title="Ingress">
+<header class="hero solo">
+  <div>
+    <div class="eyebrow">Networking</div>
+    <h1 style="margin-top:18px"><span class="cmd">kubectl apply -f ingress/</span>Ingress</h1>
+    <p class="lede">One HTTP entry point for the whole cluster. Routes by host and path to Services. The Ingress object is only a rule list. A controller you install does the work.</p>
+    <ul class="facts">
+      <li>Ingress <b>my-ingress</b></li>
+      <li>path <b>/ → my-app:80</b></li>
+      <li>controller <b>ingress-nginx</b></li>
+      <li>cluster <b>kind dev-cluster</b></li>
+    </ul>
+  </div>
+</header>
+
+<section id="ing-why" data-nav="Why Ingress">
+  <header class="prose">
+    <div class="eyebrow">The problem</div>
+    <h2>One load balancer per app gets expensive</h2>
+    <p>LoadBalancer Services work at layer 4: one IP each, no idea about URLs. Ingress puts one layer 7 router in front of everything.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="why" data-mode="lb" viewBox="0 0 1000 300" role="img" aria-label="Without Ingress each app needs its own load balancer; with Ingress one entry point routes by path">
+        <g class="comp" id="w-user"><rect class="box" x="16" y="120" width="130" height="60" rx="10"/><text class="t-title" x="32" y="146">Users</text><text class="t-sub" x="32" y="166">example.com</text></g>
+        <g class="comp lb-only" id="w-lb0"><rect class="box" x="220" y="30" width="170" height="60" rx="10"/><text class="t-title" x="236" y="56" style="font-size:14px">Load balancer</text><text class="t-sub" x="236" y="76">34.90.1.10 · $</text></g>
+        <g class="comp" id="w-lb1"><rect class="box" x="220" y="120" width="170" height="60" rx="10"/><text class="t-title" x="236" y="146" style="font-size:14px">Load balancer</text><text class="t-sub" x="236" y="166">34.90.1.11 · $</text></g>
+        <g class="comp lb-only" id="w-lb2"><rect class="box" x="220" y="210" width="170" height="60" rx="10"/><text class="t-title" x="236" y="236" style="font-size:14px">Load balancer</text><text class="t-sub" x="236" y="256">34.90.1.12 · $</text></g>
+        <g class="comp ing-only" id="w-ctl"><rect class="box" x="440" y="105" width="180" height="90" rx="10" style="stroke:var(--signal)"/><text class="t-title" x="456" y="134">Ingress controller</text><text class="t-sub" x="456" y="155">/shop → shop</text><text class="t-sub" x="456" y="171">/api → api · /blog → blog</text></g>
+        <g class="comp" id="w-s0"><rect class="box" x="680" y="30" width="300" height="60" rx="10" style="stroke:var(--k8s)"/><text class="t-title" x="696" y="56" style="font-size:14px">svc shop</text><text class="t-sub" x="696" y="76">ClusterIP → Pods</text></g>
+        <g class="comp" id="w-s1"><rect class="box" x="680" y="120" width="300" height="60" rx="10" style="stroke:var(--k8s)"/><text class="t-title" x="696" y="146" style="font-size:14px">svc api</text><text class="t-sub" x="696" y="166">ClusterIP → Pods</text></g>
+        <g class="comp" id="w-s2"><rect class="box" x="680" y="210" width="300" height="60" rx="10" style="stroke:var(--k8s)"/><text class="t-title" x="696" y="236" style="font-size:14px">svc blog</text><text class="t-sub" x="696" y="256">ClusterIP → Pods</text></g>
+        <g class="lb-only">
+          <path class="wire" d="M146,140 C 190,140 180,60 220,60"/><path class="wire" d="M146,150 H220"/><path class="wire" d="M146,160 C 190,160 180,240 220,240"/>
+          <path class="wire" d="M390,60 H680"/><path class="wire" d="M390,240 H680"/>
+          <path class="wire" d="M390,150 H430"/><path class="wire" d="M630,150 H680"/>
+        </g>
+        <g class="ing-only">
+          <path class="wire" d="M146,150 H220"/><path class="wire" d="M390,150 H440"/>
+          <path class="wire" d="M620,140 C 650,140 650,60 680,60"/><path class="wire" d="M620,150 H680"/><path class="wire" d="M620,160 C 650,160 650,240 680,240"/>
+        </g>
+        <g id="w-packets"></g>
+      </svg>
+    </div>
+    <div class="stat" id="w-stat"></div>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Setup">
+        <button data-w="lb" aria-pressed="true">LoadBalancer per app</button>
+        <button data-w="ing" aria-pressed="false">One Ingress</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ing-ctrl" data-nav="What's a controller">
+  <header class="prose">
+    <div class="eyebrow">Controllers</div>
+    <h2>An object does nothing until a controller watches it</h2>
+    <p>A controller is a loop: watch the desired state, compare with reality, act, repeat. kube-controller-manager runs the built-in ones. There is no Ingress controller among them.</p>
+  </header>
+  <div class="figure">
+    <div class="ctl-grid">
+      <svg id="loop" viewBox="0 0 300 260" role="img" aria-label="Control loop: watch, diff, act">
+        <circle cx="150" cy="130" r="88" class="loop-ring"/>
+        <g class="loop-node" id="l-0"><circle cx="150" cy="42" r="30"/><text x="150" y="47" text-anchor="middle">watch</text></g>
+        <g class="loop-node" id="l-1"><circle cx="226" cy="174" r="30"/><text x="226" y="179" text-anchor="middle">diff</text></g>
+        <g class="loop-node" id="l-2"><circle cx="74" cy="174" r="30"/><text x="74" y="179" text-anchor="middle">act</text></g>
+        <text class="t-small" x="150" y="128" text-anchor="middle">desired</text>
+        <text class="t-small" x="150" y="143" text-anchor="middle">vs. actual</text>
+        <circle r="7" class="loop-dot" id="l-dot" cx="150" cy="42"/>
+      </svg>
+      <div class="ctl-side">
+        <div class="cm">
+          <div class="k">kube-controller-manager · control plane</div>
+          <div class="cm-chips" id="cm-chips"></div>
+        </div>
+        <div class="ctl-row">
+          <div class="obj" id="c-ing"><span class="k">API object</span><b>Ingress my-ingress</b><span id="c-ing-st">not created</span></div>
+          <span class="arrow" id="c-arrow" aria-hidden="true">⇠</span>
+          <div class="obj ghost" id="c-ctl"><span class="k">Pod · ns ingress-nginx</span><b>ingress-nginx-controller</b><span id="c-ctl-st">not installed</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button class="btn" id="c-apply">1 · kubectl apply -f ingress.yml</button>
+      <button class="btn primary" id="c-install" disabled>2 · install ingress-nginx</button>
+      <span class="spacer"></span>
+      <button class="btn" id="c-reset">Reset</button>
+    </div>
+    <pre class="term-log" id="c-log"></pre>
+  </div>
+</section>
+
+<section id="ing-folder" data-nav="Your ingress/ folder">
+  <header class="prose">
+    <div class="eyebrow">ingress/ · 3 files + 1 manifest</div>
+    <h2>Every object in the folder, wired up</h2>
+    <p>Pick a file to see what it creates, then send a request from your Mac.</p>
+  </header>
+  <div class="figure">
+    <div class="bar" style="border-top:0;border-bottom:1px solid var(--line)">
+      <div class="seg" role="group" aria-label="File" id="f-tabs">
+        <button data-f="all" aria-pressed="true">all</button>
+        <button data-f="cluster" aria-pressed="false">cluster.yaml</button>
+        <button data-f="deploy" aria-pressed="false">deploy.yml</button>
+        <button data-f="ingress" aria-pressed="false">ingress.yml</button>
+        <button data-f="nginx" aria-pressed="false">ingress-nginx manifest</button>
+      </div>
+    </div>
+    <div class="scroll-x">
+      <svg id="fold" data-f="all" viewBox="0 0 1000 500" role="img" aria-label="kind cluster dev-cluster: port 80 on your Mac maps to the control-plane node where the ingress-nginx controller routes to my-app Pods on the workers">
+        <g data-f="cluster">
+          <rect class="zone z-cp" x="200" y="12" width="784" height="476" rx="14"/>
+          <text class="t-zone" x="218" y="34">KIND · dev-cluster (each node is a Docker container)</text>
+          <rect class="zone z-node" x="236" y="48" width="330" height="426" rx="12"/>
+          <text class="t-small" x="252" y="68">dev-cluster-control-plane</text>
+          <text class="t-small" x="252" y="83">label ingress-ready=true</text>
+          <rect class="zone z-node" x="586" y="48" width="384" height="206" rx="12"/>
+          <text class="t-small" x="602" y="68">dev-cluster-worker</text>
+          <rect class="zone z-node" x="586" y="268" width="384" height="206" rx="12"/>
+          <text class="t-small" x="602" y="288">dev-cluster-worker2</text>
+        </g>
+        <g class="comp" id="f-mac" data-f="cluster">
+          <rect class="box" x="16" y="160" width="160" height="90" rx="10" style="stroke:var(--signal)"/>
+          <text class="t-title" x="32" y="188">Your Mac</text>
+          <text class="t-sub" x="32" y="209">curl localhost/</text>
+          <text class="t-sub" x="32" y="226">:80 → node container</text>
+        </g>
+        <g data-f="cluster">
+          <g class="comp" id="f-p80"><rect class="box np-box" x="216" y="150" width="58" height="30" rx="6"/><text class="t-badge" x="230" y="170">:80</text></g>
+          <g class="comp"><rect class="box np-box" x="216" y="190" width="58" height="30" rx="6"/><text class="t-badge" x="226" y="210">:443</text></g>
+          <g class="comp"><rect class="box np-box" x="216" y="230" width="58" height="30" rx="6"/><text class="t-badge" x="220" y="250">:31234</text></g>
+          <text class="t-small" x="40" y="276">extraPortMappings</text>
+          <path class="wire" d="M176,195 C 196,195 196,165 216,165"/>
+        </g>
+        <g class="comp" id="f-ctl" data-f="nginx">
+          <rect class="box" x="290" y="120" width="260" height="120" rx="10" style="stroke:var(--signal);stroke-width:2"/>
+          <text class="t-title" x="306" y="146" style="font-size:14px">ingress-nginx-controller</text>
+          <text class="t-sub" x="306" y="166">Pod · ns ingress-nginx</text>
+          <text class="t-sub" x="306" y="184">hostPort 80, 443</text>
+          <text class="t-sub" x="306" y="202">nodeSelector ingress-ready</text>
+          <text class="t-sub" x="306" y="220">IngressClass nginx</text>
+        </g>
+        <path class="wire" d="M274,165 H290" data-f="cluster"/>
+        <path class="lookup" d="M420,240 V290" data-f="nginx"/>
+        <text class="t-small" x="428" y="270" data-f="nginx">watch</text>
+        <g data-f="all">
+          <rect class="kernel" x="256" y="290" width="294" height="172" rx="10"/>
+          <text class="t-zone" x="270" y="310">KUBE-APISERVER · etcd</text>
+        </g>
+        <g class="comp" id="f-o-ing" data-f="ingress"><rect class="box" x="270" y="320" width="266" height="40" rx="8" style="stroke:var(--signal)"/><text class="t-badge" x="282" y="337">Ingress my-ingress</text><text class="t-small" x="282" y="352">/ Prefix → my-app:80</text></g>
+        <g class="comp" id="f-o-svc" data-f="deploy"><rect class="box" x="270" y="366" width="266" height="40" rx="8" style="stroke:var(--k8s)"/><text class="t-badge" x="282" y="383">Service my-app</text><text class="t-small" x="282" y="398">app=my-app · 80 → 80</text></g>
+        <g class="comp" id="f-o-dep" data-f="deploy"><rect class="box" x="270" y="412" width="266" height="40" rx="8" style="stroke:var(--k8s)"/><text class="t-badge" x="282" y="429">Deployment my-deploy</text><text class="t-small" x="282" y="444">replicas 3 · vinsdocker/nginx-gke</text></g>
+        <g data-f="deploy" id="f-pods"></g>
+        <g data-f="nginx">
+          <path class="wire" id="f-w0" d="M550,170 C 585,170 585,110 620,110"/>
+          <path class="wire" id="f-w1" d="M550,180 C 590,180 590,190 620,190"/>
+          <path class="wire" id="f-w2" d="M550,190 C 590,190 590,370 620,370"/>
+          <text class="t-small" x="806" y="236" text-anchor="middle">straight to Pod IPs,</text>
+          <text class="t-small" x="806" y="250" text-anchor="middle">not via the ClusterIP</text>
+        </g>
+        <g id="f-packets"></g>
+      </svg>
+    </div>
+    <div class="sim-status" id="f-cap"></div>
+    <div class="bar">
+      <button class="btn primary" id="f-curl">curl localhost/</button>
+      <span class="spacer"></span>
+      <code style="font-size:0.75rem">kubectl get ingress → ADDRESS localhost</code>
+    </div>
+    <pre class="term-log" id="f-yaml" style="max-height:22em"></pre>
+  </div>
+</section>
+
+<section id="ing-nginx" data-nav="ingress-nginx inside">
+  <header class="prose">
+    <div class="eyebrow">Under the hood</div>
+    <h2>A Go controller driving nginx</h2>
+    <p>Rule changes rewrite nginx.conf and reload. Pod changes skip the reload: the new IPs go straight into a Lua balancer.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="ngx" viewBox="0 0 1000 380" role="img" aria-label="Inside the ingress-nginx controller Pod: Go controller, nginx.conf, nginx master and workers, Lua backends">
+        <rect class="zone z-laptop" x="196" y="14" width="574" height="352" rx="14"/>
+        <text class="t-zone" x="214" y="38">POD · ingress-nginx-controller</text>
+        <g class="comp" id="n-api"><rect class="box" x="16" y="70" width="150" height="80" rx="10" style="stroke:var(--k8s)"/><text class="t-title" x="30" y="98" style="font-size:14px">kube-apiserver</text><text class="t-small" x="30" y="118">Ingress · Service</text><text class="t-small" x="30" y="134">EndpointSlice · Secret</text></g>
+        <g class="comp" id="n-cli"><rect class="box" x="16" y="282" width="150" height="56" rx="10"/><text class="t-title" x="30" y="306" style="font-size:14px">client</text><text class="t-small" x="30" y="324">curl localhost/</text></g>
+        <g class="comp" id="n-go"><rect class="box" x="226" y="62" width="220" height="80" rx="10"/><text class="t-title" x="242" y="90" style="font-size:14px">controller (Go)</text><text class="t-small" x="242" y="110">informers watch objects</text><text class="t-small" x="242" y="126">builds the model</text></g>
+        <g class="comp" id="n-conf"><rect class="box" x="226" y="196" width="220" height="70" rx="10"/><text class="t-title" x="242" y="222" style="font-size:14px">nginx.conf</text><text class="t-small" x="242" y="242" id="n-conf-st">rendered from a template</text></g>
+        <g class="comp" id="n-master"><rect class="box" x="510" y="62" width="230" height="70" rx="10"/><text class="t-title" x="526" y="90" style="font-size:14px">nginx master</text><text class="t-small" x="526" y="110">reload = start new workers</text></g>
+        <g class="comp" id="n-wk"><rect class="box" x="510" y="160" width="230" height="74" rx="10"/><text class="t-title" x="526" y="184" style="font-size:14px">workers</text><g id="n-wdots"></g></g>
+        <g class="comp" id="n-lua"><rect class="box" x="510" y="262" width="230" height="74" rx="10" style="stroke:var(--tunnel)"/><text class="t-title" x="526" y="286" style="font-size:14px">Lua balancer</text><text class="t-small" x="526" y="306">backends in shared memory</text><text class="t-small" x="526" y="322" id="n-ips"></text></g>
+        <path class="wire" d="M166,110 C 196,110 196,102 226,102"/>
+        <path class="wire" d="M336,142 V196"/>
+        <path class="wire" d="M446,231 C 478,231 478,97 510,97"/>
+        <path class="wire" d="M446,122 C 490,122 470,299 510,299"/>
+        <path class="wire" d="M625,234 V262"/>
+        <path class="wire" d="M166,310 H480 C 495,310 495,197 510,197"/>
+        <g id="n-pods"></g>
+        <g id="n-packets"></g>
+      </svg>
+    </div>
+    <div class="bar">
+      <button class="btn" id="n-rule">Add a path to the Ingress</button>
+      <button class="btn" id="n-scale">Scale my-deploy to 5</button>
+      <span class="spacer"></span>
+      <span class="t-legend" id="n-reloads"></span>
+    </div>
+    <pre class="term-log" id="n-log"></pre>
+  </div>
+  <ul class="notes">
+    <li>nginx sends traffic straight to Pod IPs. The Service is only used to look up endpoints, so kube-proxy is skipped.</li>
+    <li>A validating webhook runs <code>nginx -t</code> on your Ingress before the API server stores it. Broken config gets rejected at apply time.</li>
+  </ul>
+</section>
+
+<section id="ing-match" data-nav="Host & path matching">
+  <header class="prose">
+    <div class="eyebrow">Routing rules</div>
+    <h2>Which rule wins?</h2>
+    <p>Host first, then the longest matching path. <b>Prefix</b> matches whole path segments: <code>/api</code> matches <code>/api/users</code> but not <code>/apifoo</code>.</p>
+  </header>
+  <div class="figure">
+    <div class="bar" style="border-top:0;border-bottom:1px solid var(--line)" id="m-reqs">
+      <button class="btn" data-u="shop.local/cart">shop.local/cart</button>
+      <button class="btn" data-u="localhost/api/users">localhost/api/users</button>
+      <button class="btn" data-u="localhost/apifoo">localhost/apifoo</button>
+      <button class="btn" data-u="localhost/login">localhost/login</button>
+      <button class="btn" data-u="localhost/login/">localhost/login/</button>
+      <button class="btn" data-u="localhost/">localhost/</button>
+    </div>
+    <div class="rules" id="m-rules"></div>
+    <div class="sim-status" id="m-out">Pick a request.</div>
+  </div>
+</section>
+
+<section id="ing-more" data-nav="Worth knowing">
+  <header class="prose">
+    <div class="eyebrow">Also</div>
+    <h2>Worth knowing</h2>
+  </header>
+  <div class="minis">
+    <div class="mini"><b>IngressClass</b><code>ingressClassName: nginx</code><p>Says which controller owns the Ingress. Yours has none; it works because the kind manifest sets <code>--watch-ingress-without-class</code>.</p></div>
+    <div class="mini"><b>TLS</b><code>tls: [{hosts, secretName}]</code><p>nginx terminates HTTPS using a <code>kubernetes.io/tls</code> Secret, then talks HTTP to Pods.</p></div>
+    <div class="mini"><b>Annotations</b><code>nginx.ingress.kubernetes.io/rewrite-target</code><p>Controller-specific options: rewrites, timeouts, body size, rate limits.</p></div>
+    <div class="mini"><b>No match</b><code>defaultBackend</code><p>Requests no rule matches get nginx's 404, or the default backend if you set one.</p></div>
+    <div class="mini"><b>HTTP only</b><code>layer 7</code><p>Ingress routes HTTP/HTTPS. Plain TCP/UDP still needs a NodePort or LoadBalancer Service.</p></div>
+    <div class="mini warn"><b>ingress-nginx is retired</b><code>Gateway API</code><p>Upstream maintenance ended in March 2026. Fine for learning; for new setups use Gateway API (HTTPRoute) or another controller.</p></div>
+  </div>
+  <div class="cmds">
+    <button class="cmd-row"><code>kind create cluster --config ingress/cluster.yaml</code><span>Cluster with ports 80/443 mapped</span></button>
+    <button class="cmd-row"><code>kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.4/deploy/static/provider/kind/deploy.yaml</code><span>Install the controller</span></button>
+    <button class="cmd-row"><code>kubectl wait -n ingress-nginx --for=condition=ready pod -l app.kubernetes.io/component=controller --timeout=90s</code><span>Wait until it's Ready</span></button>
+    <button class="cmd-row"><code>kubectl apply -f ingress/deploy.yml -f ingress/ingress.yml</code><span>App, Service and Ingress</span></button>
+    <button class="cmd-row"><code>kubectl get ingress,ingressclass</code><span>ADDRESS shows localhost</span></button>
+    <button class="cmd-row"><code>kubectl -n ingress-nginx logs deploy/ingress-nginx-controller -f</code><span>Watch reloads and access logs</span></button>
+    <button class="cmd-row"><code>kubectl -n ingress-nginx exec deploy/ingress-nginx-controller -- cat /etc/nginx/nginx.conf</code><span>See the generated config</span></button>
+    <button class="cmd-row"><code>curl -i localhost/</code><span>Through the Ingress from your Mac</span></button>
   </div>
 </section>
 </article>
@@ -2389,6 +2703,365 @@ ${res}`;
 }
 $('#e-sel').onchange = eSet;
 eSet();
+
+/* ================= ingress: why ================= */
+const whySvg = $('#why'), wLayer = $('#w-packets');
+const W_IN = ['M146,140 C 190,140 180,60 220,60', 'M146,150 H220', 'M146,160 C 190,160 180,240 220,240'];
+const W_OUT = ['M620,140 C 650,140 650,60 680,60', 'M620,150 H680', 'M620,160 C 650,160 650,240 680,240'];
+const W_PATH = ['/shop', '/api', '/blog'];
+let wGen = 0;
+function wSet(m) {
+  wGen++; wLayer.innerHTML = '';
+  whySvg.dataset.mode = m;
+  document.querySelectorAll('#ing-why [data-w]').forEach(b => b.setAttribute('aria-pressed', b.dataset.w === m));
+  $('#w-stat').innerHTML = m === 'lb'
+    ? '<b>3</b> load balancers · <b>3</b> public IPs · TLS set up <b>3</b> times · no path routing'
+    : '<b>1</b> load balancer · <b>1</b> IP · TLS in one place · routes by host and path';
+}
+async function wTick() {
+  if (whySvg.closest('article').hidden) return;
+  const g = wGen, alive = () => wGen === g, i = Math.floor(Math.random() * 3);
+  const go = (d, o = {}) => travel(wLayer, d, { alive, speed: 0.45, ease: false, ...o });
+  pulse($('#w-user'));
+  if (whySvg.dataset.mode === 'lb') {
+    if (!await go(W_IN[i], { label: W_PATH[i] })) return;
+    pulse($('#w-lb' + i));
+    if (await go(`M390,${60 + i * 90} H680`)) pulse($('#w-s' + i));
+  } else {
+    if (!await go('M146,150 H220', { label: W_PATH[i] })) return;
+    pulse($('#w-lb1'));
+    if (!await go('M390,150 H440')) return;
+    pulse($('#w-ctl'));
+    if (await go(W_OUT[i], { label: W_PATH[i] })) pulse($('#w-s' + i));
+  }
+}
+document.querySelectorAll('#ing-why [data-w]').forEach(b => (b.onclick = () => wSet(b.dataset.w)));
+wSet('lb');
+setInterval(wTick, reduce ? 1500 : 900);
+
+/* ================= ingress: controllers ================= */
+const CM = ['Deployment', 'ReplicaSet', 'StatefulSet', 'DaemonSet', 'Job', 'CronJob', 'EndpointSlice', 'Node', 'Namespace', 'ServiceAccount'];
+const cmChips = $('#cm-chips');
+CM.forEach(n => { const s = document.createElement('span'); s.textContent = n; cmChips.append(s); });
+const miss = document.createElement('span'); miss.className = 'missing'; miss.textContent = 'Ingress ✕ not built in'; cmChips.append(miss);
+const lDot = $('#l-dot');
+const L_ANG = [-90, 30, 150];
+let lPrev = -1;
+function loopFrame(now) {
+  requestAnimationFrame(loopFrame);
+  if (reduce || $('#loop').closest('article').hidden) return;
+  const a = (now / 12 % 360) - 90, r = a * Math.PI / 180;
+  lDot.setAttribute('cx', 150 + 88 * Math.cos(r));
+  lDot.setAttribute('cy', 130 + 88 * Math.sin(r));
+  const norm = x => ((x % 360) + 360) % 360;
+  const near = L_ANG.findIndex(t => Math.abs(norm(a) - norm(t)) < 14);
+  L_ANG.forEach((t, i) => $('#l-' + i).classList.toggle('on', i === near));
+  if (near === 2 && lPrev !== 2) {
+    const c = cmChips.children[Math.floor(Math.random() * CM.length)];
+    c.classList.add('tick'); setTimeout(() => c.classList.remove('tick'), 900);
+  }
+  lPrev = near;
+}
+requestAnimationFrame(loopFrame);
+const cLog = $('#c-log');
+function cReset() {
+  $('#c-ing').className = 'obj ghost'; $('#c-ing-st').textContent = 'not created';
+  $('#c-ctl').className = 'obj ghost'; $('#c-ctl-st').textContent = 'not installed';
+  $('#c-arrow').classList.remove('on');
+  $('#c-apply').disabled = false; $('#c-install').disabled = true;
+  cLog.innerHTML = '<span class="dim"># Step 1 creates the object. Step 2 adds the controller that acts on it.</span>';
+}
+$('#c-apply').onclick = () => {
+  $('#c-apply').disabled = true;
+  $('#c-ing').className = 'obj idle'; $('#c-ing-st').textContent = 'stored in etcd · nobody acts on it';
+  ring($('#c-ing'));
+  cLog.innerHTML = `<span class="p">$</span> kubectl apply -f ingress.yml
+ingress.networking.k8s.io/my-ingress created
+<span class="p">$</span> kubectl get ingress
+NAME         CLASS    HOSTS   ADDRESS   PORTS
+my-ingress   &lt;none&gt;   *                 80        <span class="dim"># no ADDRESS: nobody is serving it</span>
+<span class="p">$</span> curl localhost/
+<span class="err">curl: (7) Failed to connect to localhost port 80</span>`;
+  $('#c-install').disabled = false;
+};
+$('#c-install').onclick = async () => {
+  $('#c-install').disabled = true;
+  $('#c-ctl').className = 'obj boot'; $('#c-ctl-st').textContent = 'ContainerCreating…';
+  cLog.innerHTML = `<span class="p">$</span> kubectl apply -f …/provider/kind/deploy.yaml
+namespace/ingress-nginx created
+ingressclass.networking.k8s.io/nginx created
+deployment.apps/ingress-nginx-controller created`;
+  await sleep(1300);
+  $('#c-ctl').className = 'obj live'; $('#c-ctl-st').textContent = 'Running · watching Ingresses';
+  $('#c-arrow').classList.add('on');
+  await sleep(600);
+  $('#c-ing').className = 'obj live'; $('#c-ing-st').textContent = 'picked up · status.address = localhost';
+  ring($('#c-ing'));
+  cLog.innerHTML += `
+<span class="p">$</span> kubectl get ingress
+NAME         CLASS    HOSTS   ADDRESS     PORTS
+my-ingress   &lt;none&gt;   *       localhost   80
+<span class="p">$</span> curl -s -o /dev/null -w '%{http_code}' localhost/
+<span class="ok">200</span>`;
+};
+$('#c-reset').onclick = cReset;
+cReset();
+
+/* ================= ingress: your folder ================= */
+const fold = $('#fold'), fLayer = $('#f-packets');
+const F_PODS = [['my-deploy-6d8f7-4kq2z', '10.244.1.5', 82], ['my-deploy-6d8f7-x9vlm', '10.244.1.6', 162], ['my-deploy-6d8f7-p7tcw', '10.244.2.4', 342]];
+F_PODS.forEach(([n, ip, y], i) => {
+  const g = mk('g', { class: 'pod comp', id: 'f-pod' + i }, $('#f-pods'));
+  mk('rect', { class: 'box', x: 620, y, width: 210, height: 56, rx: 10 }, g);
+  mk('text', { class: 't-badge', x: 634, y: y + 22 }, g).textContent = n;
+  mk('text', { class: 't-small', x: 634, y: y + 40 }, g).textContent = `${ip} · app=my-app`;
+});
+const F_FILES = {
+  all: ['Everything in ingress/, plus the controller manifest from the comment in cluster.yaml.', ''],
+  cluster: ['3 Docker containers. Ports 80, 443 and 31234 on your Mac map into the control-plane container, which carries ingress-ready=true.',
+`kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: dev-cluster
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 31234
+        hostPort: 31234
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+  - role: worker
+  - role: worker`],
+  deploy: ['3 Pods labeled app=my-app spread over the workers, and Service my-app selecting them.',
+`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deploy
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: nginx
+          image: vinsdocker/nginx-gke
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 80`],
+  ingress: ['One rule: any host, path / (Prefix), sent to Service my-app port 80. On its own it is just data in the API server.',
+`apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-app
+                port:
+                  number: 80`],
+  nginx: ['The kind manifest pins the controller to the ingress-ready node and binds hostPort 80/443, so localhost:80 lands in nginx.',
+`<span class="dim"># excerpt · ingress-nginx controller-v1.12.4 · provider/kind/deploy.yaml</span>
+kind: Deployment
+metadata: { name: ingress-nginx-controller, namespace: ingress-nginx }
+spec:
+  template:
+    spec:
+      nodeSelector:
+        ingress-ready: "true"        <span class="dim"># your control-plane label</span>
+      containers:
+      - args:
+        - --watch-ingress-without-class=true
+        - --publish-status-address=localhost
+        ports:
+        - containerPort: 80
+          hostPort: 80               <span class="dim"># node:80 → this Pod</span>
+        - containerPort: 443
+          hostPort: 443
+---
+kind: IngressClass
+metadata: { name: nginx }
+spec:
+  controller: k8s.io/ingress-nginx`]
+};
+function fSet(f) {
+  fold.dataset.f = f;
+  document.querySelectorAll('#f-tabs [data-f]').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === f));
+  $('#f-cap').textContent = F_FILES[f][0];
+  const y = F_FILES[f][1];
+  $('#f-yaml').hidden = !y;
+  $('#f-yaml').innerHTML = y;
+}
+document.querySelectorAll('#f-tabs [data-f]').forEach(b => (b.onclick = () => fSet(b.dataset.f)));
+fSet('all');
+let fBusy = false;
+$('#f-curl').onclick = async () => {
+  if (fBusy) return;
+  fBusy = true;
+  const cap = $('#f-cap'), i = Math.floor(Math.random() * 3), [name, ip] = F_PODS[i];
+  const W = ['M550,170 C 585,170 585,110 620,110', 'M550,180 C 590,180 590,190 620,190', 'M550,190 C 590,190 590,370 620,370'];
+  cap.textContent = 'localhost:80 → kind port mapping → control-plane container :80';
+  pulse($('#f-mac'));
+  await travel(fLayer, 'M176,195 C 196,195 196,165 216,165', { label: 'GET /', speed: 0.25 });
+  pulse($('#f-p80'));
+  await travel(fLayer, 'M274,165 H290', { speed: 0.1 });
+  pulse($('#f-ctl'));
+  cap.textContent = 'hostPort 80 → nginx. Rule "/" matches → backend my-app → its endpoints';
+  pulse($('#f-o-ing')); await sleep(350); pulse($('#f-o-svc')); await sleep(450);
+  cap.textContent = `nginx proxies straight to ${ip}`;
+  await travel(fLayer, W[i], { label: ip + ':80', speed: 0.3 });
+  pulse($('#f-pod' + i));
+  await travel(fLayer, W[i].replace(/^M(\S+) C (\S+) (\S+) (\S+)$/, (m, a, b, c, d) => `M${d} C ${c} ${b} ${a}`), { cls: 'pkt resp', label: '200', speed: 0.3 });
+  await travel(fLayer, 'M290,165 H216 C 196,165 196,195 176,195', { cls: 'pkt resp', speed: 0.25 });
+  pulse($('#f-mac'));
+  cap.textContent = `200 OK from ${name}. Run it again: nginx spreads requests over all 3 Pods.`;
+  fBusy = false;
+};
+
+/* ================= ingress: ingress-nginx inside ================= */
+const nLayer = $('#n-packets'), nLogEl = $('#n-log');
+let nIps = ['10.244.1.5', '10.244.1.6', '10.244.2.4'], nGen = 0, nReloads = 0, nBusy = false, nRule = false, nLines = [];
+const N_MORE = ['10.244.2.7', '10.244.1.9'];
+const nPodY = i => 40 + i * 64;
+function nLog(lines) { nLines = [...nLines, ...lines].slice(-6); nLogEl.innerHTML = nLines.join('\n'); }
+function nPods(freshFrom = 99) {
+  const g = $('#n-pods'); g.innerHTML = '';
+  nIps.forEach((ip, i) => {
+    const y = nPodY(i);
+    mk('path', { class: 'wire', d: `M740,197 C 770,197 770,${y + 25} 800,${y + 25}`, style: 'stroke-width:1.3' }, g);
+    const p = mk('g', { class: 'pod comp' + (i >= freshFrom ? ' fresh' : ''), id: 'n-pod' + i }, g);
+    mk('rect', { class: 'box', x: 800, y, width: 184, height: 50, rx: 8 }, p);
+    mk('text', { class: 't-badge', x: 814, y: y + 22 }, p).textContent = 'my-app Pod';
+    mk('text', { class: 't-small', x: 814, y: y + 38 }, p).textContent = ip;
+  });
+  $('#n-ips').textContent = nIps.map(ip => ip.split('.').slice(2).join('.')).join(' · ');
+}
+function nWorkers() {
+  const g = $('#n-wdots');
+  [...g.children].forEach(d => { d.classList.add('old'); setTimeout(() => d.classList.add('gone'), reduce ? 0 : 900); setTimeout(() => d.remove(), reduce ? 0 : 1500); });
+  const col = nGen % 2 ? 'var(--tunnel)' : 'var(--signal)';
+  for (let j = 0; j < 4; j++) mk('rect', { class: 'wdot', x: 600 + j * 30, y: 172, width: 22, height: 22, rx: 5, fill: col }, g);
+  $('#n-reloads').textContent = `nginx reloads: ${nReloads}`;
+}
+async function nRun(fn) { if (nBusy) return; nBusy = true; $('#n-rule').disabled = $('#n-scale').disabled = true; try { await fn(); } finally { nBusy = false; $('#n-rule').disabled = $('#n-scale').disabled = false; } }
+$('#n-rule').onclick = () => nRun(async () => {
+  nRule = !nRule;
+  nLog([`<span class="p">$</span> kubectl apply -f ingress.yml <span class="dim"># ${nRule ? 'added' : 'removed'} path /api</span>`]);
+  pulse($('#n-api'));
+  await travel(nLayer, 'M166,110 C 196,110 196,102 226,102', { label: 'Ingress changed', speed: 0.3 });
+  pulse($('#n-go'));
+  await travel(nLayer, 'M336,142 V196', { label: 'render', speed: 0.15 });
+  pulse($('#n-conf'));
+  $('#n-conf-st').textContent = `nginx -t ✓ · ${nRule ? 'location /api added' : 'location /api removed'}`;
+  nLog(['<span class="dim">controller.go] Configuration changes detected, backend reload required</span>']);
+  await travel(nLayer, 'M446,231 C 478,231 478,97 510,97', { label: 'reload', speed: 0.3 });
+  pulse($('#n-master'));
+  nGen++; nReloads++; nWorkers();
+  nLog(['<span class="ok">controller.go] Backend successfully reloaded</span> <span class="dim"># old workers finish their requests, then exit</span>']);
+  $('#n-rule').textContent = nRule ? 'Remove the path' : 'Add a path to the Ingress';
+  await sleep(900);
+});
+$('#n-scale').onclick = () => nRun(async () => {
+  const up = nIps.length === 3, n = up ? 5 : 3;
+  nLog([`<span class="p">$</span> kubectl scale deploy/my-deploy --replicas=${n}`]);
+  pulse($('#n-api'));
+  await travel(nLayer, 'M166,110 C 196,110 196,102 226,102', { label: 'EndpointSlice changed', speed: 0.3 });
+  pulse($('#n-go'));
+  await travel(nLayer, 'M446,122 C 490,122 470,299 510,299', { label: 'POST /configuration/backends', speed: 0.3 });
+  pulse($('#n-lua'));
+  nIps = up ? [...nIps, ...N_MORE] : nIps.slice(0, 3);
+  nPods(up ? 3 : 99);
+  nLog(['<span class="ok">controller.go] Dynamic reconfiguration succeeded</span> <span class="dim"># no reload</span>']);
+  $('#n-reloads').textContent = `nginx reloads: ${nReloads}`;
+  $('#n-scale').textContent = up ? 'Scale my-deploy to 3' : 'Scale my-deploy to 5';
+});
+async function nTick() {
+  if ($('#ngx').closest('article').hidden) return;
+  const i = Math.floor(Math.random() * nIps.length), y = nPodY(i) + 25;
+  pulse($('#n-cli'));
+  if (!await travel(nLayer, 'M166,310 H480 C 495,310 495,197 510,197', { speed: 0.5, ease: false })) return;
+  pulse($('#n-wk'));
+  if (i >= nIps.length) return;
+  if (await travel(nLayer, `M740,197 C 770,197 770,${y} 800,${y}`, { label: nIps[i], speed: 0.35, ease: false })) pulse($('#n-pod' + i));
+}
+nPods(); nWorkers();
+nLog(['<span class="p">$</span> kubectl -n ingress-nginx logs deploy/ingress-nginx-controller -f']);
+setInterval(nTick, reduce ? 1500 : 1200);
+
+/* ================= ingress: host & path matching ================= */
+const M_RULES = [
+  { host: 'shop.local', path: '/', type: 'Prefix', to: 'shop:80' },
+  { host: '', path: '/api', type: 'Prefix', to: 'api:80' },
+  { host: '', path: '/login', type: 'Exact', to: 'auth:80' },
+  { host: '', path: '/', type: 'Prefix', to: 'my-app:80', mine: true }
+];
+const M_WHY = {
+  'shop.local/cart': 'shop.local has its own rule, so only its paths count.',
+  'localhost/api/users': '/api and / both match. The longer path wins.',
+  'localhost/apifoo': 'Prefix works per segment: /api does not match /apifoo. Falls back to /.',
+  'localhost/login': 'Exact /login matches and beats the shorter /.',
+  'localhost/login/': 'Exact means exact: the trailing slash breaks it. Falls back to /.',
+  'localhost/': 'Only / matches: your ingress.yml rule.'
+};
+const mRules = $('#m-rules');
+mRules.innerHTML = '<div class="rule head"><span>host</span><span>path</span><span>type</span><span>backend</span></div>' +
+  M_RULES.map(r => `<div class="rule"><span>${r.host || '<span class="m">* (any)</span>'}</span><span>${r.path}</span><span class="m">${r.type}</span><span>→ ${r.to}${r.mine ? ' <span class="m">· yours</span>' : ''}</span></div>`).join('');
+const mRows = [...mRules.querySelectorAll('.rule:not(.head)')];
+const pathOk = (r, p) => r.type === 'Exact' ? p === r.path : r.path === '/' || p === r.path || p.startsWith(r.path + '/');
+let mGen = 0;
+async function mTest(u) {
+  const g = ++mGen;
+  const slash = u.indexOf('/'), host = u.slice(0, slash), path = u.slice(slash);
+  const hostHit = M_RULES.some(r => r.host === host);
+  mRows.forEach(r => (r.className = 'rule'));
+  document.querySelectorAll('#m-reqs .btn').forEach(b => b.classList.toggle('primary', b.dataset.u === u));
+  $('#m-out').textContent = `GET ${path}  ·  Host: ${host}`;
+  const cands = [];
+  for (let i = 0; i < M_RULES.length; i++) {
+    const r = M_RULES[i], row = mRows[i];
+    row.classList.add('check');
+    await sleep(320); if (g !== mGen) return;
+    row.classList.remove('check');
+    const ok = (hostHit ? r.host === host : !r.host) && pathOk(r, path);
+    row.classList.add(ok ? 'cand' : 'no');
+    if (ok) cands.push(i);
+  }
+  cands.sort((a, b) => M_RULES[b].path.length - M_RULES[a].path.length || (M_RULES[a].type === 'Exact' ? -1 : 1));
+  await sleep(200); if (g !== mGen) return;
+  const w = cands[0];
+  if (w === undefined) { $('#m-out').textContent = 'No rule matches → 404 from the default backend'; return; }
+  mRows[w].classList.replace('cand', 'win');
+  $('#m-out').textContent = `${u} → ${M_RULES[w].to}. ${M_WHY[u]}`;
+}
+document.querySelectorAll('#m-reqs [data-u]').forEach(b => (b.onclick = () => mTest(b.dataset.u)));
 
 /* ================= deployments: copy commands ================= */
 document.querySelectorAll('.cmd-row').forEach(b => {
