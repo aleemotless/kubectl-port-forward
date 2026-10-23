@@ -198,6 +198,8 @@ pre.code { margin: 0; background: var(--code-bg); color: var(--code-fg); font: 0
 .pod.dying .box { stroke: var(--danger); stroke-dasharray: 4 4; }
 .pod.gone { opacity: 0.15; }
 .pod.fresh .box { stroke: var(--ok); stroke-width: 2.5; }
+.pod.chosen .box { stroke: var(--signal); stroke-width: 2.5; }
+#dp-tun { transition: opacity 0.4s; }
 .t-status { font: 600 10.5px var(--f-mono); fill: var(--ok); }
 .dying .t-status { fill: var(--danger); }
 .t-count { font: 700 18px var(--f-mono); fill: var(--ink); }
@@ -550,6 +552,91 @@ Forwarding from [::1]:8080 -&gt; 80
     <pre class="term-log" id="sv-log" aria-live="polite"></pre>
   </div>
   <p class="callout prose">Port-forward is a debugging tool, not an exposure method. If the Pod restarts, gets rescheduled, or is replaced by a rollout, kubectl prints <code>lost connection to pod</code> and exits. It never reconnects on its own.</p>
+</section>
+
+<!-- ================= DEPLOYMENT ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">Forwarding to a Deployment</div>
+    <h2><code style="font-size:0.85em">deploy/nginx-deployment</code> still ends at one Pod</h2>
+    <p>Your <code>deploy.yml</code> asks for 3 replicas. kubectl walks from the Deployment to its selector, lists the matching Pods, picks one running Pod, and opens the tunnel to that Pod by name. The Deployment and ReplicaSet never carry a byte. The manifest declares no <code>containerPort</code>, and port-forward doesn't need one: it dials port 80 inside the Pod directly.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="dep" viewBox="0 0 1000 390" role="img" aria-label="kubectl resolves deploy/nginx-deployment through its ReplicaSet and selector to three Pods, then tunnels to only one of them">
+        <rect class="zone z-node" x="222" y="12" width="770" height="368" rx="14"/>
+        <text class="t-zone" x="972" y="368" text-anchor="end">CLUSTER · namespace default</text>
+
+        <g class="comp" id="dp-kubectl">
+          <rect class="box" x="16" y="140" width="184" height="100" rx="10"/>
+          <text class="t-title" x="32" y="168">kubectl</text>
+          <text class="t-sub" x="32" y="190">port-forward</text>
+          <text class="t-sub" x="32" y="206">deploy/nginx-deployment</text>
+          <text class="t-sub" x="32" y="222">8080:80</text>
+        </g>
+
+        <path class="lookup" d="M200,160 C 225,160 225,76 250,76"/>
+        <path class="wire" d="M365,112 V150"/>
+        <text class="t-small" x="373" y="135">owns</text>
+        <path class="wire" d="M365,222 V262"/>
+        <text class="t-small" x="373" y="246">selects with</text>
+        <path class="wire" d="M480,186 C 590,186 590,72 700,72"/>
+        <path class="wire" d="M480,186 H700"/>
+        <path class="wire" d="M480,186 C 590,186 590,292 700,292"/>
+        <text class="t-small" x="540" y="176">owns</text>
+
+        <g class="comp" id="dp-deploy">
+          <rect class="box" x="250" y="40" width="230" height="72" rx="10" style="stroke: var(--k8s)"/>
+          <text class="t-title" x="266" y="68">Deployment</text>
+          <text class="t-sub" x="266" y="92">nginx-deployment · replicas: 3</text>
+        </g>
+        <g class="comp" id="dp-rs">
+          <rect class="box" x="250" y="150" width="230" height="72" rx="10"/>
+          <text class="t-title" x="266" y="178">ReplicaSet</text>
+          <text class="t-sub" x="266" y="202" id="dp-rs-name">nginx-deployment-7c79c4bf97</text>
+        </g>
+        <g class="comp" id="dp-sel">
+          <rect class="box" x="250" y="262" width="230" height="50" rx="10"/>
+          <text class="t-sub" x="266" y="292" style="fill: var(--ink); font-weight: 700">selector  app=nginx</text>
+        </g>
+
+        <g id="dp-tun">
+          <path class="sv-tunnel" d="M200,220 C 215,220 215,350 300,350 H 640 C 680,350 680,292 700,292"/>
+          <path class="sv-tunnel-core" d="M200,220 C 215,220 215,350 300,350 H 640 C 680,350 680,292 700,292"/>
+          <text class="t-small" x="300" y="342">tunnel to pods/…-wt6zr/portforward (via API server + kubelet)</text>
+        </g>
+
+        <g class="pod comp" id="dp-p0">
+          <rect class="box" x="700" y="40" width="284" height="64" rx="10"/>
+          <text class="t-sub" x="716" y="64" style="fill: var(--ink)" data-name>nginx-deployment-7c79c4bf97-2xk8d</text>
+          <text class="t-status" x="716" y="88" data-status>Running · Ready</text>
+          <text class="t-count" x="968" y="90" text-anchor="end" data-count>0</text>
+        </g>
+        <g class="pod comp" id="dp-p1">
+          <rect class="box" x="700" y="150" width="284" height="64" rx="10"/>
+          <text class="t-sub" x="716" y="174" style="fill: var(--ink)" data-name>nginx-deployment-7c79c4bf97-9fqlm</text>
+          <text class="t-status" x="716" y="198" data-status>Running · Ready</text>
+          <text class="t-count" x="968" y="200" text-anchor="end" data-count>0</text>
+        </g>
+        <g class="pod comp" id="dp-p2">
+          <rect class="box" x="700" y="260" width="284" height="64" rx="10"/>
+          <text class="t-sub" x="716" y="284" style="fill: var(--ink)" data-name>nginx-deployment-7c79c4bf97-wt6zr</text>
+          <text class="t-status" x="716" y="308" data-status>Running · Ready</text>
+          <text class="t-count" x="968" y="310" text-anchor="end" data-count>0</text>
+        </g>
+        <text class="t-small" x="984" y="30" text-anchor="end">number = requests served</text>
+        <g id="dp-packets"></g>
+      </svg>
+    </div>
+    <div class="bar">
+      <button class="btn primary" id="dp-replay">Replay the lookup</button>
+      <span class="spacer"></span>
+      <button class="btn warn" id="dp-roll">kubectl rollout restart</button>
+      <button class="btn" id="dp-reset">Reset</button>
+    </div>
+    <pre class="term-log" id="dp-log" aria-live="polite"></pre>
+  </div>
+  <p class="callout prose">Scaling up, rolling out a new image, or <code>kubectl rollout restart</code> all replace Pods. The forward stays pinned to the Pod it picked at start, so the first time that Pod is terminated, kubectl exits.</p>
 </section>
 
 <!-- ================= BUILDER ================= -->
@@ -1049,6 +1136,107 @@ $('#sv-kill').onclick = () => {
   }, reduce ? 0 : 900);
 };
 svReset('pf');
+
+/* ================= deployment demo ================= */
+const dpLayer = $('#dp-packets'), dpLogEl = $('#dp-log');
+const DP_RS = 'nginx-deployment-7c79c4bf97', DP_NEW_RS = 'nginx-deployment-5d9f8b6c4a';
+const DP_SUF = ['2xk8d', '9fqlm', 'wt6zr'], DP_NEW_SUF = ['k2v7n', 'p8xqz', 'h4tmc'];
+const DP_LOOKUP = 'M200,160 C 225,160 225,76 250,76';
+const DP_MATCH = ['M480,287 C 590,287 590,72 700,72', 'M480,287 C 590,287 590,182 700,182', 'M480,287 H700 V292'];
+const DP_TUN = 'M200,220 C 215,220 215,350 300,350 H 640 C 680,350 680,292 700,292';
+const dpPod = i => $('#dp-p' + i);
+let dp = { gen: 0, timer: null };
+function dpLog(lines) {
+  dp.log.push(...lines);
+  dp.log = dp.log.slice(-7);
+  dpLogEl.innerHTML = dp.log.join('\n');
+}
+async function dpResolve(instant) {
+  clearInterval(dp.timer);
+  const g = ++dp.gen;
+  dp = { gen: g, timer: null, log: [], broken: false, rolled: false, counts: [0, 0, 0] };
+  const alive = () => dp.gen === g;
+  const go = (d, o = {}) => instant ? Promise.resolve(true) : travel(dpLayer, d, { alive, ...o });
+  const nap = ms => instant ? Promise.resolve() : sleep(ms);
+  dpLayer.innerHTML = '';
+  $('#dp-rs-name').textContent = DP_RS;
+  $('#dp-tun').classList.add('off');
+  $('#dp-tun').classList.remove('broken');
+  $('#dp-roll').disabled = true;
+  [0, 1, 2].forEach(i => {
+    const p = dpPod(i);
+    p.className.baseVal = 'pod comp';
+    p.querySelector('[data-name]').textContent = `${DP_RS}-${DP_SUF[i]}`;
+    p.querySelector('[data-status]').textContent = 'Running · Ready';
+    p.querySelector('[data-count]').textContent = '0';
+  });
+  dpLog(['<span class="p">$</span> kubectl port-forward deploy/nginx-deployment 8080:80']);
+  if (!await go(DP_LOOKUP, { label: 'GET deploy' })) return;
+  pulse($('#dp-deploy'));
+  dpLog(['<span class="dim">GET  /apis/apps/v1/namespaces/default/deployments/nginx-deployment</span>']);
+  await nap(400); if (!alive()) return;
+  pulse($('#dp-rs')); pulse($('#dp-sel'));
+  dpLog(['<span class="dim"># spec.selector.matchLabels → app=nginx</span>']);
+  await nap(500); if (!alive()) return;
+  const found = await Promise.all(DP_MATCH.map(d => go(d)));
+  if (!found.every(Boolean)) return;
+  [0, 1, 2].forEach(i => pulse(dpPod(i)));
+  dpLog(['<span class="dim">GET  /api/v1/namespaces/default/pods?labelSelector=app%3Dnginx  → 3 Pods</span>']);
+  await nap(600); if (!alive()) return;
+  [0, 1].forEach(i => dpPod(i).className.baseVal = 'pod comp unused');
+  dpPod(2).className.baseVal = 'pod comp chosen';
+  dpLog([`<span class="dim"># picked one running Pod: ${DP_RS}-wt6zr</span>`]);
+  await nap(500); if (!alive()) return;
+  $('#dp-tun').classList.remove('off');
+  dpLog([`<span class="dim">POST /api/v1/namespaces/default/pods/${DP_RS}-wt6zr/portforward</span>`,
+    'Forwarding from 127.0.0.1:8080 -> 80', 'Forwarding from [::1]:8080 -> 80']);
+  $('#dp-roll').disabled = false;
+  const tick = async () => {
+    if (dp.broken) return;
+    const done = reduce ? true : await travel(dpLayer, DP_TUN, { alive: () => alive() && !dp.broken, speed: 0.55, ease: false });
+    if (done && alive() && !dp.broken) {
+      dp.counts[2]++;
+      dpPod(2).querySelector('[data-count]').textContent = dp.counts[2];
+      pulse(dpPod(2));
+    }
+  };
+  dp.timer = setInterval(tick, reduce ? 900 : 600);
+  tick();
+}
+async function dpRollout() {
+  if (dp.rolled) return;
+  dp.rolled = true;
+  $('#dp-roll').disabled = true;
+  const g = dp.gen, alive = () => dp.gen === g;
+  dpLog(['<span class="p">$</span> kubectl rollout restart deployment/nginx-deployment',
+    'deployment.apps/nginx-deployment restarted']);
+  await sleep(500); if (!alive()) return;
+  $('#dp-rs-name').textContent = DP_NEW_RS;
+  pulse($('#dp-rs'));
+  // rolling update replaces Pods one at a time; the forwarded Pod goes last
+  for (const i of [0, 1, 2]) {
+    const p = dpPod(i);
+    p.className.baseVal = 'pod comp dying';
+    p.querySelector('[data-status]').textContent = 'Terminating';
+    if (i === 2) {
+      dp.broken = true;
+      $('#dp-tun').classList.add('broken');
+      dpLog(['<span class="err">error: lost connection to pod</span>']);
+    }
+    await sleep(900); if (!alive()) return;
+    p.className.baseVal = 'pod comp gone';
+    await sleep(500); if (!alive()) return;
+    p.querySelector('[data-name]').textContent = `${DP_NEW_RS}-${DP_NEW_SUF[i]}`;
+    p.querySelector('[data-status]').textContent = 'Running · Ready · new';
+    p.querySelector('[data-count]').textContent = '0';
+    p.className.baseVal = 'pod comp fresh';
+  }
+  dpLog(['<span class="dim"># 3 new Pods are Ready. The forward is gone: run the command again.</span>']);
+}
+$('#dp-replay').onclick = () => dpResolve(false);
+$('#dp-reset').onclick = () => dpResolve(true);
+$('#dp-roll').onclick = dpRollout;
+dpResolve(true);
 
 /* ================= builder ================= */
 const F = id => $('#f-' + id);
