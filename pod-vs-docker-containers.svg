@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720" role="img" aria-labelledby="title desc">
+  <title id="title">Containers in one Pod vs. separate Docker containers</title>
+  <desc id="desc">Two containers in the same Pod share one hostname, IP and localhost. Two plain Docker containers each get their own hostname, IP and localhost.</desc>
+  <style>
+    :root {
+      --bg: #EEF1F4; --panel: #F9FBFC; --ink: #15212C; --muted: #566977; --line: #C6D0D8;
+      --k8s: #2D5FD3; --share: #0B7C85; --docker: #1D63B8; --ok: #1D8549; --bad: #C0352A;
+      --term: #16212B; --term-fg: #DCE5EC; --term-dim: #8BA0B1; --prompt: #F4A43C;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0D141B; --panel: #142029; --ink: #E3EAF0; --muted: #8FA2B2; --line: #2A3A47;
+        --k8s: #7EA4FF; --share: #3EC3CB; --docker: #6FB0FF; --ok: #55CC8A; --bad: #FF6E61;
+        --term: #091016; --term-fg: #DCE5EC; --term-dim: #7D92A3; --prompt: #F4A43C;
+      }
+    }
+    text { font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif; fill: var(--ink); }
+    .mono, .term-t { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    .h1 { font-size: 28px; font-weight: 700; }
+    .sub { font-size: 15px; fill: var(--muted); }
+    .h2 { font-size: 19px; font-weight: 700; }
+    .label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; fill: var(--muted); }
+    .cname { font-size: 15px; font-weight: 600; }
+    .small { font-size: 12px; fill: var(--muted); }
+    .ns { font-size: 13px; }
+    .ns b, .ns .v { font-weight: 700; }
+    .term-t { font-size: 13px; fill: var(--term-fg); }
+    .prompt { fill: var(--prompt); }
+    .out-ok { fill: #7FD9A6; font-weight: 700; }
+    .out-bad { fill: #FF9A90; font-weight: 700; }
+
+    .bg { fill: var(--bg); }
+    .panel { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
+    .pod { fill: none; stroke: var(--k8s); stroke-width: 2; stroke-dasharray: 8 6; }
+    .dbox { fill: none; stroke: var(--docker); stroke-width: 2; }
+    .band { fill: var(--share); fill-opacity: 0.12; stroke: var(--share); stroke-width: 1.5; }
+    .band-own { fill: var(--docker); fill-opacity: 0.1; stroke: var(--docker); stroke-width: 1.5; }
+    .ctr { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+    .term { fill: var(--term); }
+    .lo { fill: var(--share); fill-opacity: 0.08; stroke: var(--share); stroke-width: 1.2; stroke-dasharray: 4 4; }
+    .lo-own { fill: var(--docker); fill-opacity: 0.06; stroke: var(--docker); stroke-width: 1.2; stroke-dasharray: 4 4; }
+    .join { stroke: var(--share); stroke-width: 3; }
+    .join-own { stroke: var(--docker); stroke-width: 3; }
+    .bridge { stroke: var(--muted); stroke-width: 3; }
+    .pkt { fill: #F4A43C; stroke: var(--panel); stroke-width: 2.5; }
+    .badge-ok { fill: var(--ok); fill-opacity: 0.14; stroke: var(--ok); stroke-width: 1.5; }
+    .badge-bad { fill: var(--bad); fill-opacity: 0.12; stroke: var(--bad); stroke-width: 1.5; }
+    .t-ok { fill: var(--ok); font-weight: 700; }
+    .t-bad { fill: var(--bad); font-weight: 700; }
+    .cmp-ok { fill: var(--ok); }
+    .cmp-bad { fill: var(--bad); }
+    .cmp-t { fill: var(--panel); font-size: 22px; font-weight: 800; }
+
+    /* 12 s timeline, every stage fades out together at the end */
+    .s1, .s2, .s3, .s4, .s5, .s6, .s7 { opacity: 0; animation-duration: 12s; animation-iteration-count: infinite; animation-timing-function: ease-out; }
+    .s1 { animation-name: s1; } .s2 { animation-name: s2; } .s3 { animation-name: s3; }
+    .s4 { animation-name: s4; } .s5 { animation-name: s5; } .s6 { animation-name: s6; } .s7 { animation-name: s7; }
+    @keyframes s1 { 0%, 3% { opacity: 0 } 6%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    @keyframes s2 { 0%, 11% { opacity: 0 } 14%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    @keyframes s3 { 0%, 20% { opacity: 0 } 23%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    @keyframes s4 { 0%, 28% { opacity: 0 } 31%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    @keyframes s5 { 0%, 36% { opacity: 0 } 40%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    @keyframes s6 { 0%, 60% { opacity: 0 } 63%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    @keyframes s7 { 0%, 78% { opacity: 0 } 81%, 92% { opacity: 1 } 97%, 100% { opacity: 0 } }
+    .glow { animation: glow 12s infinite; }
+    @keyframes glow { 0%, 36% { stroke-width: 1.5 } 40% { stroke-width: 5 } 46%, 100% { stroke-width: 1.5 } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .s1, .s2, .s3, .s4, .s5, .s6, .s7 { animation: none; opacity: 1; }
+      .glow { animation: none; }
+      .moving { display: none; }
+    }
+  </style>
+
+  <rect class="bg" width="1200" height="720"/>
+
+  <text class="h1" x="30" y="50">Same Pod vs. separate Docker containers</text>
+  <text class="sub" x="30" y="76">Each container runs <tspan class="mono">hostname</tspan>, then <tspan class="mono">hostname -i</tspan>, then tries to reach the other one on <tspan class="mono">localhost:80</tspan>.</text>
+
+  <!-- ===================== LEFT: one Pod ===================== -->
+  <rect class="panel" x="30" y="96" width="560" height="600" rx="16"/>
+  <text class="label" x="50" y="124">KUBERNETES · ONE POD, TWO CONTAINERS</text>
+
+  <rect class="pod" x="50" y="140" width="520" height="400" rx="14"/>
+  <text class="small mono" x="66" y="162" style="fill: var(--k8s); font-weight: 700">Pod nginx-pod1</text>
+
+  <!-- shared namespaces -->
+  <rect class="band glow" x="70" y="172" width="480" height="76" rx="10"/>
+  <text class="ns" x="86" y="196">Shared by both · held by the <tspan class="mono">pause</tspan> container</text>
+  <text class="ns mono" x="86" y="218">UTS ns → hostname <tspan class="v" style="fill: var(--share)">nginx-pod1</tspan></text>
+  <text class="ns mono" x="86" y="238">NET ns → IP <tspan class="v" style="fill: var(--share)">10.244.1.7</tspan> · one localhost</text>
+
+  <line class="join" x1="185" y1="248" x2="185" y2="270"/>
+  <line class="join" x1="435" y1="248" x2="435" y2="270"/>
+
+  <!-- container: nginx -->
+  <rect class="ctr" x="70" y="270" width="230" height="200" rx="10"/>
+  <text class="cname" x="84" y="296">nginx</text>
+  <text class="small mono" x="286" y="296" text-anchor="end">listens :80</text>
+  <rect class="term" x="82" y="310" width="206" height="110" rx="6"/>
+  <text class="term-t s1" x="94" y="336"><tspan class="prompt">$</tspan> hostname</text>
+  <text class="term-t out-ok s2" x="94" y="356">nginx-pod1</text>
+  <text class="term-t s3" x="94" y="384"><tspan class="prompt">$</tspan> hostname -i</text>
+  <text class="term-t out-ok s4" x="94" y="404">10.244.1.7</text>
+  <text class="small" x="84" y="452">container 1 of 2</text>
+
+  <!-- container: sidecar -->
+  <rect class="ctr" x="320" y="270" width="230" height="200" rx="10"/>
+  <text class="cname" x="334" y="296">sidecar</text>
+  <text class="small mono" x="536" y="296" text-anchor="end">busybox</text>
+  <rect class="term" x="332" y="310" width="206" height="110" rx="6"/>
+  <text class="term-t s1" x="344" y="336"><tspan class="prompt">$</tspan> hostname</text>
+  <text class="term-t out-ok s2" x="344" y="356">nginx-pod1</text>
+  <text class="term-t s3" x="344" y="384"><tspan class="prompt">$</tspan> hostname -i</text>
+  <text class="term-t out-ok s4" x="344" y="404">10.244.1.7</text>
+  <text class="small" x="334" y="452">container 2 of 2</text>
+
+  <!-- equals marker -->
+  <g class="s5">
+    <circle class="cmp-ok" cx="310" cy="370" r="17"/>
+    <text class="cmp-t" x="310" y="378" text-anchor="middle">=</text>
+  </g>
+
+  <!-- shared loopback -->
+  <rect class="lo" x="70" y="482" width="480" height="44" rx="22"/>
+  <text class="small mono" x="310" y="509" text-anchor="middle">lo 127.0.0.1 · shared by both containers</text>
+  <g class="s6">
+    <text class="small mono t-ok" x="84" y="509">200 OK ✓</text>
+  </g>
+  <text class="small" x="70" y="562">sidecar: <tspan class="mono">curl localhost:80</tspan> reaches nginx directly.</text>
+
+  <circle class="pkt moving" r="8" opacity="0">
+    <animateMotion dur="12s" repeatCount="indefinite" path="M435,470 V504 H185 V470" keyPoints="0;0;1;1" keyTimes="0;0.48;0.6;1" calcMode="linear"/>
+    <animate attributeName="opacity" dur="12s" repeatCount="indefinite" values="0;0;1;1;0;0" keyTimes="0;0.47;0.48;0.6;0.61;1"/>
+  </circle>
+
+  <rect class="badge-ok s5" x="50" y="600" width="520" height="44" rx="22"/>
+  <text class="s5 t-ok" x="310" y="628" text-anchor="middle" style="font-size: 16px">Same hostname · same IP · same localhost</text>
+  <text class="small s5" x="310" y="674" text-anchor="middle">Containers in a Pod share network and UTS namespaces.</text>
+
+  <!-- ===================== RIGHT: plain Docker ===================== -->
+  <rect class="panel" x="610" y="96" width="560" height="600" rx="16"/>
+  <text class="label" x="630" y="124">DOCKER · TWO CONTAINERS, NO POD</text>
+
+  <!-- container A: web -->
+  <rect class="dbox" x="630" y="140" width="255" height="400" rx="14"/>
+  <text class="small mono" x="646" y="162" style="fill: var(--docker); font-weight: 700">docker run --name web nginx</text>
+  <rect class="band-own glow" x="642" y="172" width="231" height="76" rx="10"/>
+  <text class="ns" x="656" y="196">Own namespaces</text>
+  <text class="ns mono" x="656" y="218">host <tspan class="v" style="fill: var(--docker)">3f2a9c1b7d4e</tspan></text>
+  <text class="ns mono" x="656" y="238">IP   <tspan class="v" style="fill: var(--docker)">172.17.0.2</tspan></text>
+  <line class="join-own" x1="757" y1="248" x2="757" y2="270"/>
+  <rect class="ctr" x="642" y="270" width="231" height="200" rx="10"/>
+  <text class="cname" x="656" y="296">web</text>
+  <text class="small mono" x="859" y="296" text-anchor="end">listens :80</text>
+  <rect class="term" x="654" y="310" width="207" height="110" rx="6"/>
+  <text class="term-t s1" x="666" y="336"><tspan class="prompt">$</tspan> hostname</text>
+  <text class="term-t out-bad s2" x="666" y="356">3f2a9c1b7d4e</text>
+  <text class="term-t s3" x="666" y="384"><tspan class="prompt">$</tspan> hostname -i</text>
+  <text class="term-t out-bad s4" x="666" y="404">172.17.0.2</text>
+  <text class="small" x="656" y="452">hostname = container ID</text>
+  <rect class="lo-own" x="642" y="482" width="231" height="44" rx="22"/>
+  <text class="small mono" x="757" y="509" text-anchor="middle">lo · web only</text>
+
+  <!-- container B: tools -->
+  <rect class="dbox" x="895" y="140" width="255" height="400" rx="14"/>
+  <text class="small mono" x="911" y="162" style="fill: var(--docker); font-weight: 700">docker run --name tools busybox</text>
+  <rect class="band-own glow" x="907" y="172" width="231" height="76" rx="10"/>
+  <text class="ns" x="921" y="196">Own namespaces</text>
+  <text class="ns mono" x="921" y="218">host <tspan class="v" style="fill: var(--docker)">a81e05c6f912</tspan></text>
+  <text class="ns mono" x="921" y="238">IP   <tspan class="v" style="fill: var(--docker)">172.17.0.3</tspan></text>
+  <line class="join-own" x1="1022" y1="248" x2="1022" y2="270"/>
+  <rect class="ctr" x="907" y="270" width="231" height="200" rx="10"/>
+  <text class="cname" x="921" y="296">tools</text>
+  <text class="small mono" x="1124" y="296" text-anchor="end">busybox</text>
+  <rect class="term" x="919" y="310" width="207" height="110" rx="6"/>
+  <text class="term-t s1" x="931" y="336"><tspan class="prompt">$</tspan> hostname</text>
+  <text class="term-t out-bad s2" x="931" y="356">a81e05c6f912</text>
+  <text class="term-t s3" x="931" y="384"><tspan class="prompt">$</tspan> hostname -i</text>
+  <text class="term-t out-bad s4" x="931" y="404">172.17.0.3</text>
+  <text class="small" x="921" y="452">hostname = container ID</text>
+  <rect class="lo-own" x="907" y="482" width="231" height="44" rx="22"/>
+  <text class="small mono" x="921" y="509">lo · tools only</text>
+  <g class="s6">
+    <text class="small mono t-bad" x="1124" y="509" text-anchor="end">refused ✗</text>
+  </g>
+
+  <!-- not-equal marker -->
+  <g class="s5">
+    <circle class="cmp-bad" cx="890" cy="370" r="17"/>
+    <text class="cmp-t" x="890" y="378" text-anchor="middle">≠</text>
+  </g>
+
+  <!-- docker0 bridge -->
+  <line class="bridge" x1="757" y1="540" x2="757" y2="570"/>
+  <line class="bridge" x1="1022" y1="540" x2="1022" y2="570"/>
+  <line class="bridge" x1="700" y1="570" x2="1080" y2="570"/>
+  <text class="small mono" x="890" y="588" text-anchor="middle">docker0 bridge · 172.17.0.1</text>
+  <g class="s7">
+    <text class="small mono t-ok" x="771" y="562">200 OK ✓</text>
+  </g>
+
+  <!-- packet 1: localhost from tools stays inside tools and fails -->
+  <circle class="pkt moving" r="8" opacity="0">
+    <animateMotion dur="12s" repeatCount="indefinite" path="M1022,470 V504" keyPoints="0;0;1;1" keyTimes="0;0.48;0.6;1" calcMode="linear"/>
+    <animate attributeName="opacity" dur="12s" repeatCount="indefinite" values="0;0;1;1;0;0" keyTimes="0;0.47;0.48;0.6;0.61;1"/>
+  </circle>
+  <!-- packet 2: via web's IP over the bridge, succeeds -->
+  <circle class="pkt moving" r="8" opacity="0">
+    <animateMotion dur="12s" repeatCount="indefinite" path="M1022,526 V570 H757 V526" keyPoints="0;0;1;1" keyTimes="0;0.64;0.78;1" calcMode="linear"/>
+    <animate attributeName="opacity" dur="12s" repeatCount="indefinite" values="0;0;1;1;0;0" keyTimes="0;0.63;0.64;0.78;0.79;1"/>
+  </circle>
+
+  <rect class="badge-bad s5" x="630" y="600" width="520" height="44" rx="22"/>
+  <text class="s5 t-bad" x="890" y="628" text-anchor="middle" style="font-size: 16px">Different hostname · different IP · own localhost</text>
+  <text class="small s5" x="890" y="674" text-anchor="middle">tools: <tspan class="mono">localhost:80</tspan> is refused, <tspan class="mono">172.17.0.2:80</tspan> works.</text>
+</svg>

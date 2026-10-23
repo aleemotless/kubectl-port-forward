@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>html{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Tracing kubectl port-forward</title>
+<title>K8s Field Notes</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -259,6 +259,121 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
   .anatomy { padding: 20px; }
   .detail { padding: 18px; }
 }
+
+/* ---------- shell + sidebar ---------- */
+.shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 44px; max-width: 1260px; margin: 0 auto; }
+.main { min-width: 0; max-width: 1000px; }
+.side { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; max-height: 100vh; overflow-y: auto; padding-block: 34px 24px; display: grid; gap: 26px; align-content: start; }
+.brand { font: 800 1.3rem/1 var(--f-display); letter-spacing: -0.02em; }
+.brand small { display: block; font: 500 0.7rem var(--f-mono); color: var(--muted); margin-top: 7px; letter-spacing: 0.06em; }
+.nav { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.nav > li > a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--ink); text-decoration: none; font: 600 0.95rem var(--f-body); white-space: nowrap; }
+.nav > li > a::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--line); transition: background 0.2s; }
+.nav > li > a:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.nav > li > a[aria-current="page"] { background: color-mix(in srgb, var(--signal) 13%, transparent); }
+.nav > li > a[aria-current="page"]::before { background: var(--signal); }
+.sub { list-style: none; margin: 4px 0 10px 14px; padding: 0 0 0 10px; border-left: 1px solid var(--line); display: grid; gap: 1px; }
+.nav > li:not(.open) .sub { display: none; }
+.sub button { all: unset; box-sizing: border-box; cursor: pointer; display: block; width: 100%; font: 0.84rem/1.3 var(--f-body); color: var(--muted); padding: 6px 8px; border-radius: 6px; }
+.sub button:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.sub button:focus-visible { outline: 2px solid var(--signal); }
+section { scroll-margin-top: 24px; }
+.hero.solo { grid-template-columns: minmax(0, 1fr); padding-block: 48px 0; }
+@media (max-width: 900px) {
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .side { z-index: 6; background: var(--paper); border-bottom: 1px solid var(--line); padding-block: 10px; grid-auto-flow: column; justify-content: start; align-items: center; gap: 14px; overflow-x: auto; max-height: none; }
+  .brand small { display: none; }
+  .nav { grid-auto-flow: column; }
+  .nav .sub { display: none !important; }
+  section { scroll-margin-top: 72px; }
+}
+
+/* ---------- deployments ---------- */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 22px; }
+.card { background: var(--paper); border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 14px; display: grid; gap: 3px; min-width: 0; }
+.card .k { font: 700 0.66rem var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.card .v { font: 600 0.88rem var(--f-mono); }
+.card.kdep { border-color: var(--k8s); }
+.card.busy { animation: ring 0.9s ease-out; }
+@keyframes ring { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--signal) 60%, transparent); } to { box-shadow: 0 0 0 14px transparent; } }
+.arrow { color: var(--muted); font: 700 1.1rem var(--f-mono); }
+.num { display: inline-block; }
+.num.flash { color: var(--signal); animation: pop 0.5s; }
+@keyframes pop { 40% { transform: scale(1.4); } }
+.pods { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; align-items: center; flex: 1 1 220px; min-width: 0; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 999px; font: 600 0.72rem var(--f-mono); border: 1.5px solid var(--k8s); background: color-mix(in srgb, var(--k8s) 12%, var(--surface)); color: var(--ink); animation: chipin 0.35s cubic-bezier(.2, .9, .3, 1.3); transition: opacity 0.5s, transform 0.5s; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.chip.v2 { border-color: var(--signal); background: color-mix(in srgb, var(--signal) 15%, var(--surface)); }
+.chip.starting { border-style: dashed; background: transparent; }
+.chip.starting i { background: var(--signal); animation: blink 0.8s steps(1) infinite; }
+.chip.term { border-color: var(--danger); opacity: 0.35; transform: scale(0.85); }
+.chip.term i { background: var(--danger); }
+@keyframes chipin { from { transform: scale(0.4); opacity: 0; } }
+
+.sim-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+.field output { font: 700 0.95rem var(--f-mono); }
+.field input[type="range"] { padding: 0; accent-color: var(--signal); background: none; border: 0; }
+.limits { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 22px 0; font: 600 0.8rem var(--f-mono); }
+.limits span { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); }
+.limits .mx { border-color: var(--danger); }
+.limits .mn { border-color: var(--ok); }
+.limits .warn { border-color: var(--danger); color: var(--danger); }
+.lanes { display: grid; gap: 10px; padding: 16px 22px 6px; }
+.lane { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: center; }
+.lane > div:first-child { font: 600 0.75rem/1.4 var(--f-mono); color: var(--muted); }
+.chart-wrap { padding: 0 22px; overflow-x: auto; }
+#sim-chart { display: block; width: 100%; min-width: 520px; height: auto; }
+.c-axis { stroke: var(--line); stroke-width: 1.5; }
+.c-line { stroke-width: 1.5; stroke-dasharray: 5 5; }
+.c-max { stroke: var(--danger); fill: var(--danger); }
+.c-min { stroke: var(--ok); fill: var(--ok); }
+text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
+.c-old { fill: var(--k8s); }
+.c-new { fill: var(--signal); }
+.c-start { fill: color-mix(in srgb, var(--signal) 15%, transparent); stroke: var(--signal); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.c-term { fill: var(--danger); opacity: 0.35; }
+.c-tick { fill: var(--muted); font: 10.5px var(--f-mono); }
+.c-bar.grow { animation: grow 0.45s ease-out; transform-box: fill-box; transform-origin: bottom; }
+@keyframes grow { from { transform: scaleY(0); } }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 22px 12px; font: 0.75rem var(--f-mono); color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sim-status { font: 600 0.85rem/1.5 var(--f-mono); padding: 12px 22px; border-top: 1px solid var(--line); min-height: 3.2em; }
+
+.revs { display: flex; gap: 12px; padding: 22px; overflow-x: auto; align-items: stretch; }
+.rev { flex: 0 0 158px; background: var(--paper); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 7px; align-content: start; }
+.rev.active { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, var(--surface)); }
+.rev.stuck { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 7%, var(--surface)); }
+.rev.idle { opacity: 0.72; }
+.rev .tag { font: 700 0.62rem var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.rev.active .tag { color: var(--ok); }
+.rev.stuck .tag { color: var(--danger); }
+.rev .rn { font: 800 1.45rem/1 var(--f-display); }
+.rev .rn s { color: var(--danger); font-size: 0.68em; margin-right: 6px; }
+.rev .img { font: 600 0.8rem var(--f-mono); }
+.rev .hash { font: 0.68rem var(--f-mono); color: var(--muted); word-break: break-all; }
+.dots { display: flex; gap: 5px; min-height: 14px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); }
+.dot.bad { background: var(--danger); }
+.dot.pop { animation: chipin 0.4s cubic-bezier(.2, .9, .3, 1.3); }
+.sel { font: 500 0.82rem var(--f-mono); padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); max-width: 100%; }
+.hist-out { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.hist-out .term-log + .term-log { border-left: 1px solid rgba(255, 255, 255, 0.08); }
+
+.cmds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cmd-row { all: unset; box-sizing: border-box; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; min-width: 0; transition: border-color 0.2s; }
+.cmd-row:hover { border-color: var(--ink); }
+.cmd-row:focus-visible { outline: 2px solid var(--signal); }
+.cmd-row code { font: 600 0.78rem/1.5 var(--f-mono); background: none; padding: 0; word-break: break-word; }
+.cmd-row span { color: var(--muted); font-size: 0.85rem; }
+.cmd-row.copied span { color: var(--ok); }
+@media (max-width: 700px) {
+  .sim-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .lane { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .hist-out, .cmds { grid-template-columns: minmax(0, 1fr); }
+  .hist-out .term-log + .term-log { border-left: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -266,7 +381,169 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
 </head>
 <body>
 
-<div class="wrap">
+<div class="shell">
+<aside class="side" aria-label="Topics">
+  <div class="brand">K8s Field Notes<small>kubernetes-course</small></div>
+  <ul class="nav" id="nav"></ul>
+</aside>
+<main class="main">
+
+<!-- ================= TOPIC: PODS ================= -->
+<article id="pods" data-topic data-title="Pods">
+<header class="hero solo">
+  <div>
+    <div class="eyebrow">Workloads</div>
+    <h1 style="margin-top:18px"><span class="cmd">kubectl apply -f pod.yaml</span>Pods</h1>
+    <p class="lede">The smallest thing Kubernetes runs: one or more containers sharing a network, a hostname, and volumes.</p>
+  </div>
+</header>
+<section id="pods-share" data-nav="Pod vs. Docker">
+  <header class="prose">
+    <div class="eyebrow">Shared namespaces</div>
+    <h2>One Pod, one hostname</h2>
+  </header>
+  <div class="figure"><img src="pod-vs-docker-containers.svg" alt="Containers in one Pod share hostname nginx-pod1, one IP and localhost; two Docker containers each get their own" style="display:block;width:100%;height:auto"></div>
+</section>
+</article>
+
+<!-- ================= TOPIC: DEPLOYMENTS ================= -->
+<article id="deployments" data-topic data-title="Deployments">
+<header class="hero solo">
+  <div>
+    <div class="eyebrow">Workloads</div>
+    <h1 style="margin-top:18px"><span class="cmd">kubectl apply -f deploy.yml</span>Deployments</h1>
+    <p class="lede">You declare the desired state. The Deployment manages ReplicaSets, and each ReplicaSet manages Pods.</p>
+    <ul class="facts">
+      <li>replicas <b>3</b></li>
+      <li>selector <b>app=nginx</b></li>
+      <li>strategy <b>RollingUpdate</b></li>
+      <li>keeps <b>10</b> old ReplicaSets</li>
+    </ul>
+  </div>
+</header>
+
+<section id="dep-loop" data-nav="Self-healing & scaling">
+  <header class="prose">
+    <div class="eyebrow">Desired vs. actual</div>
+    <h2>Controllers close the gap</h2>
+    <p>Delete a Pod or change replicas. The ReplicaSet makes actual match desired.</p>
+  </header>
+  <div class="figure">
+    <div class="flow">
+      <div class="card kdep" id="o-dep"><span class="k">Deployment</span><span class="v">nginx-deployment</span><span class="v">replicas: <b class="num" id="o-des">3</b></span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="card" id="o-rs"><span class="k">ReplicaSet</span><span class="v">…-7c79c4bf97</span><span class="v">desired <b class="num" id="o-rsd">3</b> · ready <b class="num" id="o-rsr">3</b></span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="pods" id="o-pods" aria-live="polite"></div>
+    </div>
+    <div class="bar">
+      <button class="btn warn" id="o-del">Delete a Pod</button>
+      <button class="btn" id="o-up">Scale to 5</button>
+      <button class="btn" id="o-down">Scale to 2</button>
+    </div>
+    <pre class="term-log" id="o-log" style="min-height:5.2em"></pre>
+  </div>
+</section>
+
+<section id="dep-rolling" data-nav="maxSurge & maxUnavailable">
+  <header class="prose">
+    <div class="eyebrow">Rolling update</div>
+    <h2>How old Pods get swapped for new ones</h2>
+    <p><b>maxSurge</b>: extra Pods allowed above replicas (rounds up). <b>maxUnavailable</b>: Pods allowed to be missing (rounds down). Default 25% each.</p>
+  </header>
+  <div class="figure">
+    <form class="sim-controls" id="sim-form" autocomplete="off">
+      <div class="field"><label for="sim-r">Replicas <output id="sim-r-out">4</output></label><input type="range" id="sim-r" min="2" max="8" value="4"></div>
+      <div class="field"><label for="sim-s">maxSurge</label>
+        <select id="sim-s"><option>0</option><option>1</option><option>2</option><option selected>25%</option><option>50%</option><option>100%</option></select></div>
+      <div class="field"><label for="sim-u">maxUnavailable</label>
+        <select id="sim-u"><option>0</option><option>1</option><option>2</option><option selected>25%</option><option>50%</option></select></div>
+      <div class="field"><label for="sim-st">Strategy</label>
+        <select id="sim-st"><option>RollingUpdate</option><option>Recreate</option></select></div>
+    </form>
+    <div class="limits" id="sim-limits"></div>
+    <div class="lanes">
+      <div class="lane"><div>old RS<br>nginx:1.26</div><div class="pods" id="lane-old"></div></div>
+      <div class="lane"><div>new RS<br>nginx:1.27</div><div class="pods" id="lane-new"></div></div>
+    </div>
+    <div class="chart-wrap"><svg id="sim-chart" viewBox="0 0 720 190" role="img" aria-label="Pod counts at each rollout step"></svg></div>
+    <div class="legend">
+      <span><i style="background:var(--k8s)"></i>old, Ready</span>
+      <span><i style="background:var(--signal)"></i>new, Ready</span>
+      <span><i style="border:1.5px dashed var(--signal)"></i>new, starting</span>
+      <span><i style="background:var(--danger);opacity:.35"></i>terminating</span>
+    </div>
+    <div class="sim-status" id="sim-status" aria-live="polite"></div>
+    <div class="bar">
+      <button class="btn primary" id="sim-play">Play rollout</button>
+      <button class="btn" id="sim-step">Step</button>
+      <button class="btn" id="sim-reset">Reset</button>
+      <span class="spacer"></span>
+      <code style="font-size:0.75rem">kubectl set image deploy/nginx-deployment nginx=nginx:1.27</code>
+    </div>
+  </div>
+</section>
+
+<section id="dep-history" data-nav="History & undo">
+  <header class="prose">
+    <div class="eyebrow">Revisions</div>
+    <h2>Undo copies an old revision forward</h2>
+    <p>Each template change creates a ReplicaSet. Old ones stay at 0 Pods so you can roll back. Try the bad tag, then undo.</p>
+  </header>
+  <div class="figure">
+    <div class="revs" id="revs"></div>
+    <div class="bar">
+      <select class="sel" id="h-img" aria-label="Image">
+        <option value="nginx:1.27">nginx:1.27</option>
+        <option value="nginx:1.27-typo">nginx:1.27-typo (bad tag)</option>
+      </select>
+      <button class="btn" id="h-set">set image</button>
+      <button class="btn primary" id="h-undo">rollout undo</button>
+      <select class="sel" id="h-to" aria-label="Target revision"></select>
+      <button class="btn" id="h-undo-to">undo to revision</button>
+      <span class="spacer"></span>
+      <button class="btn" id="h-reset">Reset</button>
+    </div>
+    <div class="hist-out">
+      <pre class="term-log" id="h-hist"></pre>
+      <pre class="term-log" id="h-status"></pre>
+    </div>
+  </div>
+</section>
+
+<section id="dep-cmds" data-nav="Commands">
+  <header class="prose">
+    <div class="eyebrow">Cheat sheet · click to copy</div>
+    <h2>Deployment commands</h2>
+  </header>
+  <div class="cmds">
+    <button class="cmd-row"><code>kubectl get deploy,rs,pods -l app=nginx</code><span>See the whole chain</span></button>
+    <button class="cmd-row"><code>kubectl scale deploy/nginx-deployment --replicas=5</code><span>Change replica count</span></button>
+    <button class="cmd-row"><code>kubectl set image deploy/nginx-deployment nginx=nginx:1.27</code><span>Start a rollout</span></button>
+    <button class="cmd-row"><code>kubectl rollout status deploy/nginx-deployment</code><span>Watch it finish</span></button>
+    <button class="cmd-row"><code>kubectl rollout history deploy/nginx-deployment</code><span>List revisions</span></button>
+    <button class="cmd-row"><code>kubectl rollout history deploy/nginx-deployment --revision=2</code><span>Show one revision's template</span></button>
+    <button class="cmd-row"><code>kubectl rollout undo deploy/nginx-deployment</code><span>Back to the previous revision</span></button>
+    <button class="cmd-row"><code>kubectl rollout undo deploy/nginx-deployment --to-revision=1</code><span>Back to a specific revision</span></button>
+    <button class="cmd-row"><code>kubectl rollout pause deploy/nginx-deployment</code><span>Batch several edits, then <b>resume</b></span></button>
+    <button class="cmd-row"><code>kubectl rollout restart deploy/nginx-deployment</code><span>Fresh Pods, same image</span></button>
+    <button class="cmd-row"><code>kubectl annotate deploy/nginx-deployment kubernetes.io/change-cause="nginx 1.27"</code><span>Fill the CHANGE-CAUSE column</span></button>
+    <button class="cmd-row"><code>kubectl edit deploy/nginx-deployment</code><span>Edit live; any template change = new revision</span></button>
+  </div>
+  <div class="codewrap"><pre class="code" data-copy>spec:
+  replicas: 3
+  revisionHistoryLimit: 10    <span class="dim"># old ReplicaSets kept for undo</span>
+  minReadySeconds: 0          <span class="dim"># Ready this long = available</span>
+  strategy:
+    type: RollingUpdate       <span class="dim"># or Recreate</span>
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%</pre></div>
+</section>
+</article>
+
+<!-- ================= TOPIC: PORT-FORWARD ================= -->
+<article id="port-forward" data-topic data-title="Port-forward">
 
 <!-- ================= HERO ================= -->
 <header class="hero">
@@ -295,7 +572,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </header>
 
 <!-- ================= JOURNEY ================= -->
-<section id="journey-sec">
+<section id="journey-sec" data-nav="Request journey">
   <header class="prose">
     <div class="eyebrow">The journey of one request</div>
     <h2>Seven hops from your browser to nginx</h2>
@@ -413,7 +690,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= ANATOMY ================= -->
-<section>
+<section id="pf-anatomy" data-nav="Command anatomy">
   <header class="prose">
     <div class="eyebrow">Anatomy of the command</div>
     <h2>The command, part by part</h2>
@@ -438,7 +715,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= MULTIPLEX ================= -->
-<section>
+<section id="pf-streams" data-nav="Streams">
   <div class="split">
     <div class="prose">
       <div class="eyebrow">Inside the pipe</div>
@@ -461,7 +738,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= SERVICE GOTCHA ================= -->
-<section>
+<section id="pf-service" data-nav="Services">
   <header class="prose">
     <div class="eyebrow">The Service trap</div>
     <h2><code style="font-size:0.85em">svc/web</code> does not mean load balancing</h2>
@@ -548,7 +825,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= DEPLOYMENT ================= -->
-<section>
+<section id="pf-deploy" data-nav="Deployments">
   <header class="prose">
     <div class="eyebrow">Forwarding to a Deployment</div>
     <h2><code style="font-size:0.85em">deploy/nginx-deployment</code> still ends at one Pod</h2>
@@ -632,7 +909,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= BUILDER ================= -->
-<section>
+<section id="pf-builder" data-nav="Command builder">
   <header class="prose">
     <div class="eyebrow">Build your command</div>
     <h2>Your command and its output</h2>
@@ -684,7 +961,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= COMPARISON ================= -->
-<section>
+<section id="pf-compare" data-nav="Comparison">
   <header class="prose">
     <div class="eyebrow">When to reach for it</div>
     <h2>Port-forward next to the other ways in</h2>
@@ -704,7 +981,7 @@ Forwarding from [::1]:8080 -&gt; 80
 </section>
 
 <!-- ================= ERRORS ================= -->
-<section>
+<section id="pf-errors" data-nav="Errors">
   <header class="prose">
     <div class="eyebrow">Troubleshooting</div>
     <h2>The errors you'll actually see</h2>
@@ -750,6 +1027,9 @@ rules:
 <footer>
   kubectl 1.31+ uses WebSocket to the API server; older clusters use SPDY.
 </footer>
+</article>
+
+</main>
 </div>
 
 <script>
@@ -789,9 +1069,51 @@ function travel(layer, d, { cls = 'pkt', speed = 0.3, label, alive = () => true,
 }
 function pulse(el) {
   if (!el) return;
-  el.classList.remove('pulse'); void el.getBBox(); el.classList.add('pulse');
+  el.classList.remove('pulse'); void el.getBoundingClientRect(); el.classList.add('pulse');
   setTimeout(() => el.classList.remove('pulse'), 700);
 }
+
+
+/* ================= topics + sidebar ================= */
+const topics = [...document.querySelectorAll('article[data-topic]')];
+const nav = $('#nav');
+topics.forEach(a => {
+  const li = document.createElement('li');
+  li.dataset.topic = a.id;
+  const link = document.createElement('a');
+  link.href = '#' + a.id;
+  link.textContent = a.dataset.title;
+  const sub = document.createElement('ul');
+  sub.className = 'sub';
+  a.querySelectorAll('section[data-nav]').forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = s.dataset.nav;
+    b.addEventListener('click', () => {
+      show(a.id);
+      try { history.replaceState(null, '', '#' + a.id); } catch (e) {}
+      s.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    });
+    const sli = document.createElement('li');
+    sli.appendChild(b);
+    sub.appendChild(sli);
+  });
+  li.append(link, sub);
+  nav.appendChild(li);
+});
+function show(id, top) {
+  if (!topics.some(a => a.id === id)) id = 'deployments';
+  topics.forEach(a => { a.hidden = a.id !== id; });
+  nav.querySelectorAll(':scope > li').forEach(li => {
+    const on = li.dataset.topic === id;
+    li.classList.toggle('open', on);
+    const a = li.querySelector('a');
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  if (top) window.scrollTo(0, 0);
+}
+addEventListener('hashchange', () => show(location.hash.slice(1), true));
+show(location.hash.slice(1));
 
 /* ================= journey ================= */
 const J = $('#journey'), jLayer = $('#j-packets');
@@ -1049,6 +1371,7 @@ function svReset(mode) {
     pulse(pod(i));
   };
   const tick = async () => {
+    if (SV.closest('article').hidden) return;
     if (reduce) {
       // no motion: just tally requests
       if (sv.mode === 'pf') { if (!sv.broken) serve(0); }
@@ -1164,7 +1487,7 @@ async function dpResolve(instant) {
     'Forwarding from 127.0.0.1:8080 -> 80', 'Forwarding from [::1]:8080 -> 80']);
   $('#dp-roll').disabled = false;
   const tick = async () => {
-    if (dp.broken) return;
+    if (dp.broken || $('#dep').closest('article').hidden) return;
     const done = reduce ? true : await travel(dpLayer, DP_TUN, { alive: () => alive() && !dp.broken, speed: 0.55, ease: false });
     if (done && alive() && !dp.broken) {
       dp.counts[2]++;
@@ -1241,6 +1564,272 @@ function build() {
 $('#bf').addEventListener('input', build);
 $('#bf').addEventListener('submit', e => e.preventDefault());
 build();
+
+
+/* ================= deployments: self-healing ================= */
+const sfx = () => Math.random().toString(36).slice(2, 7).padEnd(5, '0');
+function mkChip(cls, label) {
+  const c = document.createElement('span');
+  c.className = 'chip ' + cls;
+  c.innerHTML = '<i></i>';
+  c.append(label);
+  return c;
+}
+function flash(el, v) { el.textContent = v; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+function ring(el) { el.classList.remove('busy'); void el.offsetWidth; el.classList.add('busy'); }
+const oPods = $('#o-pods'), oLogEl = $('#o-log'), oBtns = ['#o-del', '#o-up', '#o-down'].map(s => $(s));
+let oDes = 3, oLines = [];
+const oLive = () => [...oPods.children].filter(c => !c.classList.contains('term'));
+const oReady = () => oLive().filter(c => c.classList.contains('ready')).length;
+function oLog(line, reset) { oLines = reset ? [line] : [...oLines, line].slice(-4); oLogEl.innerHTML = oLines.join('\n'); }
+function oInit() {
+  oPods.innerHTML = '';
+  for (let i = 0; i < 3; i++) oPods.append(mkChip('ready', sfx()));
+  oLog('<span class="dim"># desired 3 · actual 3 · nothing to do</span>', true);
+}
+async function oReconcile() {
+  ring($('#o-rs'));
+  await sleep(450);
+  const live = oLive(), diff = oDes - live.length;
+  if (diff > 0) {
+    const fresh = Array.from({ length: diff }, () => { const c = mkChip('starting', sfx()); oPods.append(c); return c; });
+    await sleep(1100);
+    fresh.forEach(c => c.classList.replace('starting', 'ready'));
+  } else if (diff < 0) {
+    const gone = live.slice(diff);
+    gone.forEach(c => c.classList.add('term'));
+    await sleep(650);
+    gone.forEach(c => c.remove());
+  }
+  flash($('#o-rsr'), oReady());
+  oLog(`<span class="ok"># actual ${oLive().length} = desired ${oDes}</span>`);
+}
+async function oRun(fn) {
+  if (oBtns[0].disabled) return;
+  oBtns.forEach(b => (b.disabled = true));
+  try { await fn(); } finally {
+    oBtns.forEach(b => (b.disabled = false));
+    $('#o-up').disabled = oDes === 5;
+    $('#o-down').disabled = oDes === 2;
+  }
+}
+$('#o-del').onclick = () => oRun(async () => {
+  const live = oLive(), victim = live[Math.floor(Math.random() * live.length)];
+  oLog(`<span class="p">$</span> kubectl delete pod nginx-deployment-7c79c4bf97-${victim.lastChild.textContent}`, true);
+  victim.classList.add('term');
+  await sleep(600);
+  victim.remove();
+  flash($('#o-rsr'), oReady());
+  oLog(`<span class="dim"># ReplicaSet sees ${oLive().length}/${oDes} → creates ${oDes - oLive().length}</span>`);
+  await oReconcile();
+});
+const oScale = n => oRun(async () => {
+  oLog(`<span class="p">$</span> kubectl scale deploy/nginx-deployment --replicas=${n}`, true);
+  oDes = n;
+  flash($('#o-des'), n); ring($('#o-dep'));
+  await sleep(450);
+  flash($('#o-rsd'), n);
+  const d = n - oLive().length;
+  oLog(`<span class="dim"># ReplicaSet desired ${n} → ${d > 0 ? 'create ' + d : 'delete ' + -d}</span>`);
+  await oReconcile();
+});
+$('#o-up').onclick = () => oScale(5);
+$('#o-down').onclick = () => oScale(2);
+oInit();
+
+/* ================= deployments: rolling update simulator ================= */
+const simR = $('#sim-r'), simS = $('#sim-s'), simU = $('#sim-u'), simSt = $('#sim-st');
+const laneOld = $('#lane-old'), laneNew = $('#lane-new'), chart = $('#sim-chart'), simStatus = $('#sim-status');
+let sim = { timer: null };
+const resolvePct = (v, R, up) => v.endsWith('%') ? (up ? Math.ceil : Math.floor)(R * parseInt(v, 10) / 100) : parseInt(v, 10);
+function simCounts() {
+  const q = (lane, sel) => lane.querySelectorAll(sel).length;
+  return { old: q(laneOld, '.ready'), term: q(laneOld, '.term'), ready: q(laneNew, '.ready'), start: q(laneNew, '.starting') };
+}
+function simSetup() {
+  clearInterval(sim.timer);
+  const R = +simR.value, rec = simSt.value === 'Recreate';
+  $('#sim-r-out').textContent = R;
+  let surge = resolvePct(simS.value, R, true), unav = resolvePct(simU.value, R, false), note = '';
+  const invalid = !rec && simS.value === '0' && simU.value === '0';
+  if (!rec && !invalid && surge === 0 && unav === 0) { unav = 1; note = 'both round to 0, so maxUnavailable becomes 1'; }
+  simS.disabled = simU.disabled = rec;
+  sim = { R, surge: rec ? 0 : surge, unav: rec ? R : unav, rec, invalid, step: 0, done: false, hist: [], timer: null };
+  laneOld.innerHTML = ''; laneNew.innerHTML = '';
+  for (let i = 0; i < R; i++) laneOld.append(mkChip('ready', sfx()));
+  $('#sim-limits').innerHTML = invalid
+    ? `<span class="warn">maxSurge and maxUnavailable can't both be 0: nothing could ever move</span>`
+    : rec
+      ? `<span>kill all ${R}, then start ${R}</span><span class="warn">downtime</span>`
+      : `<span class="mx">max Pods ${R + surge} = ${R} + ${surge}</span><span class="mn">min available ${R - unav} = ${R} − ${unav}</span>${note ? `<span>${note}</span>` : ''}`;
+  $('#sim-play').disabled = $('#sim-step').disabled = invalid;
+  sim.hist.push(simCounts());
+  drawChart();
+  simStatus.innerHTML = invalid ? '' : `<span style="color:var(--muted)">${R} Pods on nginx:1.26. Press Play.</span>`;
+}
+function simFinish() {
+  sim.done = true;
+  clearInterval(sim.timer);
+  sim.hist.push(simCounts());
+  drawChart();
+  simStatus.innerHTML = `<span style="color:var(--ok)">deployment "nginx-deployment" successfully rolled out</span> · ${sim.step} steps`;
+  $('#sim-play').disabled = false;
+}
+function simStep() {
+  if (sim.done || sim.invalid) return;
+  // last step's new Pods are Ready now, terminated ones are gone
+  laneOld.querySelectorAll('.term').forEach(c => c.remove());
+  laneNew.querySelectorAll('.starting').forEach(c => c.classList.replace('starting', 'ready'));
+  let c = simCounts();
+  if (c.old === 0 && c.ready === sim.R) { simFinish(); return; }
+  sim.step++;
+  let up, down;
+  if (sim.rec) {
+    down = c.old;
+    up = c.old > 0 ? 0 : sim.R - c.ready - c.start;
+  } else {
+    up = Math.max(0, Math.min(sim.R + sim.surge - (c.old + c.ready + c.start), sim.R - c.ready - c.start));
+    down = Math.max(0, Math.min(c.old, c.old + c.ready - (sim.R - sim.unav)));
+  }
+  for (let i = 0; i < up; i++) laneNew.append(mkChip('v2 starting', sfx()));
+  if (down > 0) [...laneOld.querySelectorAll('.ready')].slice(-down).forEach(x => x.classList.replace('ready', 'term'));
+  sim.hist.push(simCounts());
+  drawChart();
+  c = simCounts();
+  const avail = c.old + c.ready, parts = [];
+  if (up) parts.push(`<span style="color:var(--signal)">+${up} new</span>`);
+  if (down) parts.push(`<span style="color:var(--danger)">−${down} old</span>`);
+  if (!parts.length) parts.push('waiting for new Pods to be Ready');
+  simStatus.innerHTML = `Step ${sim.step} · ${parts.join(' · ')} · ${c.old + c.ready + c.start} Pods, ${avail} available` +
+    (avail === 0 ? ' · <span style="color:var(--danger)">downtime</span>' : '');
+}
+function drawChart() {
+  const H = sim.hist, R = sim.R;
+  const maxY = Math.max(R + sim.surge, ...H.map(h => h.old + h.term + h.ready + h.start)) + 1;
+  const W = Math.max(720, 80 + H.length * 44);
+  chart.setAttribute('viewBox', `0 0 ${W} 190`);
+  chart.innerHTML = '';
+  const y = v => 160 - v * 138 / maxY;
+  mk('line', { class: 'c-axis', x1: 40, x2: W - 8, y1: 160, y2: 160 }, chart);
+  mk('text', { class: 'c-tick', x: 32, y: 164, 'text-anchor': 'end' }, chart).textContent = '0';
+  mk('text', { class: 'c-tick', x: 32, y: y(R) + 4, 'text-anchor': 'end' }, chart).textContent = R;
+  if (!sim.invalid && !sim.rec) {
+    [[R + sim.surge, 'c-max', `max Pods ${R + sim.surge}`], [R - sim.unav, 'c-min', `min available ${R - sim.unav}`]].forEach(([v, cls, label]) => {
+      mk('line', { class: 'c-line ' + cls, x1: 40, x2: W - 8, y1: y(v), y2: y(v) }, chart);
+      mk('text', { class: cls, x: W - 8, y: y(v) - 5, 'text-anchor': 'end' }, chart).textContent = label;
+    });
+  }
+  H.forEach((h, i) => {
+    const x = 50 + i * 44, g = mk('g', { class: i === H.length - 1 && i > 0 ? 'c-bar grow' : 'c-bar' }, chart);
+    let base = 0;
+    [['old', 'c-old'], ['ready', 'c-new'], ['start', 'c-start'], ['term', 'c-term']].forEach(([k, cls]) => {
+      if (!h[k]) return;
+      mk('rect', { class: cls, x, width: 26, y: y(base + h[k]) + 1, height: y(base) - y(base + h[k]) - 2, rx: 3 }, g);
+      base += h[k];
+    });
+    mk('text', { class: 'c-tick', x: x + 13, y: 178, 'text-anchor': 'middle' }, chart).textContent = i;
+  });
+  const wrap = chart.parentElement;
+  wrap.scrollLeft = wrap.scrollWidth;
+}
+$('#sim-form').addEventListener('input', simSetup);
+$('#sim-form').addEventListener('submit', e => e.preventDefault());
+$('#sim-reset').onclick = simSetup;
+$('#sim-step').onclick = () => { clearInterval(sim.timer); $('#sim-play').disabled = false; if (sim.done) simSetup(); simStep(); };
+$('#sim-play').onclick = () => {
+  if (sim.done || sim.step > 0) simSetup();
+  $('#sim-play').disabled = true;
+  sim.timer = setInterval(simStep, reduce ? 450 : 1150);
+  simStep();
+};
+simSetup();
+
+/* ================= deployments: history & undo ================= */
+const revsEl = $('#revs'), hHist = $('#h-hist'), hStatus = $('#h-status');
+let HS;
+const hCur = () => HS.rs.reduce((a, b) => (b.rev > a.rev ? b : a));
+function hInit() {
+  HS = { next: 3, rs: [
+    { hash: '6b7f8d9c4a', image: 'nginx:1.25', rev: 1, cause: 'deploy nginx 1.25', pods: 0, bad: 0 },
+    { hash: '7c79c4bf97', image: 'nginx:1.26', rev: 2, cause: 'upgrade to nginx 1.26', pods: 3, bad: 0 }
+  ] };
+  revsEl.innerHTML = '';
+  hStatus.innerHTML = '<span class="dim"># revision 2 is serving with 3 Pods</span>';
+  hRender();
+}
+function hRender() {
+  const before = new Map([...revsEl.children].map(el => [el.dataset.hash, el.getBoundingClientRect()]));
+  revsEl.innerHTML = '';
+  const cur = hCur(), sorted = [...HS.rs].sort((a, b) => a.rev - b.rev);
+  sorted.forEach(r => {
+    const state = r.bad ? 'stuck' : r.pods ? 'active' : 'idle';
+    const el = document.createElement('div');
+    el.className = 'rev ' + state;
+    el.dataset.hash = r.hash;
+    const dot = cls => `<i class="dot${cls}${r.pop ? ' pop' : ''}"></i>`;
+    el.innerHTML = `<span class="tag">${state === 'idle' ? 'scaled to 0' : state === 'stuck' ? 'ImagePullBackOff' : 'serving'}${r === cur ? ' · current' : ''}</span>
+      <span class="rn">${r.was ? `<s>${r.was}</s>` : ''}rev ${r.rev}</span>
+      <span class="img">${r.image}</span>
+      <span class="hash">rs/…-${r.hash}</span>
+      <span class="dots">${dot('').repeat(r.pods)}${dot(' bad').repeat(r.bad)}</span>`;
+    revsEl.append(el);
+    const b = before.get(r.hash), a = el.getBoundingClientRect();
+    if (reduce) return;
+    if (b && Math.abs(b.left - a.left) > 1) el.animate([{ transform: `translateX(${b.left - a.left}px)` }, { transform: 'none' }], { duration: 550, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    else if (!b && before.size) el.animate([{ transform: 'translateY(14px) scale(.95)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 400, easing: 'ease-out' });
+  });
+  HS.rs.forEach(r => { delete r.was; r.pop = false; });
+  hHist.innerHTML = `<span class="p">$</span> kubectl rollout history deploy/nginx-deployment\nREVISION  CHANGE-CAUSE\n` +
+    sorted.map(r => `${String(r.rev).padEnd(10)}${r.cause}`).join('\n');
+  $('#h-to').innerHTML = sorted.filter(r => r !== cur).reverse()
+    .map(r => `<option value="${r.rev}">--to-revision=${r.rev} · ${r.image}</option>`).join('');
+}
+function hActivate(target, bad) {
+  const serving = HS.rs.find(r => r.pods > 0);
+  HS.rs.forEach(r => { if (r !== serving) { r.pods = 0; r.bad = 0; } });
+  if (bad) { target.bad = 1; target.pop = true; return; }
+  HS.rs.forEach(r => { r.pods = 0; r.bad = 0; });
+  target.pods = 3;
+  target.pop = true;
+}
+$('#h-set').onclick = () => {
+  const img = $('#h-img').value, cur = hCur();
+  const cmd = `<span class="p">$</span> kubectl set image deploy/nginx-deployment nginx=${img}`;
+  if (cur.image === img) { hStatus.innerHTML = cmd + '\n<span class="dim"># same template as the current revision: no rollout</span>'; return; }
+  let r = HS.rs.find(x => x.image === img);
+  if (r) { r.was = r.rev; r.rev = HS.next++; }
+  else { r = { hash: sfx() + sfx(), image: img, rev: HS.next++, cause: `set image ${img}`, pods: 0, bad: 0 }; HS.rs.push(r); }
+  const bad = img.endsWith('-typo');
+  hActivate(r, bad);
+  hStatus.innerHTML = cmd + '\ndeployment.apps/nginx-deployment image updated\n' + (bad
+    ? 'Waiting for rollout to finish: 1 out of 3 new replicas have been updated...\n<span class="err"># new Pod can\'t pull its image; old Pods keep serving</span>'
+    : '<span class="ok">deployment "nginx-deployment" successfully rolled out</span>');
+  hRender();
+};
+function hUndo(toRev) {
+  const cur = hCur();
+  const target = toRev ? HS.rs.find(r => r.rev === toRev) : HS.rs.filter(r => r !== cur).sort((a, b) => b.rev - a.rev)[0];
+  if (!target) return;
+  const cmd = `<span class="p">$</span> kubectl rollout undo deploy/nginx-deployment${toRev ? ' --to-revision=' + toRev : ''}`;
+  target.was = target.rev;
+  target.rev = HS.next++;
+  hActivate(target, false);
+  hStatus.innerHTML = cmd + `\ndeployment.apps/nginx-deployment rolled back\n<span class="dim"># rev ${target.was} is now rev ${target.rev} · ${target.image} serving</span>`;
+  hRender();
+}
+$('#h-undo').onclick = () => hUndo();
+$('#h-undo-to').onclick = () => { const v = parseInt($('#h-to').value, 10); if (v) hUndo(v); };
+$('#h-reset').onclick = hInit;
+hInit();
+
+/* ================= deployments: copy commands ================= */
+document.querySelectorAll('.cmd-row').forEach(b => {
+  const label = b.querySelector('span'), orig = label.innerHTML;
+  b.addEventListener('click', () => {
+    const done = () => { b.classList.add('copied'); label.textContent = 'Copied'; setTimeout(() => { b.classList.remove('copied'); label.innerHTML = orig; }, 1300); };
+    try { navigator.clipboard.writeText(b.querySelector('code').textContent).then(done, () => {}); } catch (e) {}
+  });
+});
 
 /* ================= copy buttons ================= */
 document.querySelectorAll('pre[data-copy]').forEach(pre => {
