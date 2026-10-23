@@ -374,6 +374,38 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
   .hist-out, .cmds { grid-template-columns: minmax(0, 1fr); }
   .hist-out .term-log + .term-log { border-left: 0; }
 }
+/* ---------- services ---------- */
+.ghost-box { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 6; opacity: 0.7; }
+#i-ghost text { opacity: 0.75; }
+.kernel { fill: color-mix(in srgb, var(--ink) 4%, transparent); stroke: var(--line); stroke-width: 1.5; }
+.sep .box { stroke: var(--tunnel); }
+.sep.off-ep { opacity: 0.25; }
+.sep.new-ep .box { stroke: var(--ok); stroke-width: 2.5; }
+.drop { fill: var(--danger); font: 700 22px var(--f-mono); animation: chipin 0.35s; }
+.np-box { stroke: var(--signal); }
+#types .comp, #types .cip-part, #types .np-part, #types .lb-part { transition: opacity 0.35s; }
+#types[data-type="ClusterIP"] .np-part, #types[data-type="ClusterIP"] .lb-part,
+#types[data-type="NodePort"] .lb-part, #types:not([data-type="ClusterIP"]) .cip-part { opacity: 0.12; }
+.wire.blocked { stroke: var(--danger); stroke-dasharray: 4 5; }
+.x-mark { fill: var(--danger); font: 700 18px var(--f-mono); }
+.nest { font: 600 0.68rem/1 var(--f-mono); }
+.nest span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 8px; border-radius: 7px; border: 1.5px solid var(--line); color: var(--muted); transition: all 0.3s; }
+.nest .n2, .nest .n1 { margin-left: 2px; }
+.nest .on { border-color: var(--signal); color: var(--ink); background: color-mix(in srgb, var(--signal) 9%, transparent); }
+#ports .comp.bad .box { stroke: var(--danger); stroke-width: 2.5; }
+#pt-last.bad { stroke: var(--danger); stroke-dasharray: 4 5; }
+.chip.out { opacity: 0.35; border-style: dashed; filter: grayscale(1); }
+.chip.in { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 35%, transparent); }
+.chip.solo { border-color: var(--tunnel); }
+.dnsname { font: 600 clamp(0.95rem, 2.4vw, 1.4rem)/1 var(--f-mono); display: flex; flex-wrap: wrap; align-items: flex-start; gap: 2px; padding: 18px 20px 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.dnsname span { border-bottom: 3px solid var(--c); padding-bottom: 4px; position: relative; }
+.dnsname small { position: absolute; left: 0; top: calc(100% + 5px); font: 500 0.62rem var(--f-mono); color: var(--muted); white-space: nowrap; }
+.minis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mini { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.mini code { font-size: 0.74rem; justify-self: start; word-break: break-word; }
+.mini p { color: var(--muted); font-size: 0.88rem; }
+@media (max-width: 860px) { .minis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .minis { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -539,6 +571,268 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
     rollingUpdate:
       maxSurge: 25%
       maxUnavailable: 25%</pre></div>
+</section>
+</article>
+
+<!-- ================= TOPIC: SERVICES ================= -->
+<article id="services" data-topic data-title="Services">
+<header class="hero solo">
+  <div>
+    <div class="eyebrow">Networking</div>
+    <h1 style="margin-top:18px"><span class="cmd">kubectl apply -f service.yml</span>Services</h1>
+    <p class="lede">A stable name and virtual IP in front of Pods that come and go. No process runs it. It is rules in every node's kernel.</p>
+    <ul class="facts">
+      <li>name <b>nginx-svc</b></li>
+      <li>selector <b>app=nginx</b></li>
+      <li>port <b>80 → 80</b></li>
+      <li>ClusterIP <b>10.96.45.120</b></li>
+    </ul>
+  </div>
+</header>
+
+<section id="svc-rules" data-nav="Not a process: iptables">
+  <header class="prose">
+    <div class="eyebrow">What actually happens</div>
+    <h2>The packet never visits a "service"</h2>
+    <p>kube-proxy watches EndpointSlices and writes NAT rules. The kernel rewrites the destination from the ClusterIP to a Pod IP.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="ipt" viewBox="0 0 1000 470" role="img" aria-label="curl from curl-pod resolves nginx-svc via CoreDNS, then iptables rules in the node kernel DNAT the packet to one of the nginx Pods">
+        <rect class="zone z-node" x="16" y="12" width="604" height="446" rx="14"/>
+        <text class="t-zone" x="34" y="36">NODE · kind-worker</text>
+        <rect class="zone z-cp" x="636" y="12" width="348" height="446" rx="14"/>
+        <text class="t-zone" x="654" y="36">ENDPOINTS · app=nginx</text>
+
+        <g class="comp" id="i-curl">
+          <rect class="box" x="40" y="52" width="200" height="66" rx="10"/>
+          <text class="t-title" x="58" y="80">curl-pod</text>
+          <text class="t-sub" x="58" y="101">10.244.1.4 · curl nginx-svc</text>
+        </g>
+        <g class="comp" id="i-dns">
+          <rect class="box" x="400" y="52" width="196" height="66" rx="10"/>
+          <text class="t-title" x="418" y="80">CoreDNS</text>
+          <text class="t-sub" x="418" y="101">nginx-svc → 10.96.45.120</text>
+        </g>
+        <path class="wire" d="M240,78 H400"/>
+        <path class="wire" d="M240,94 H400"/>
+
+        <g id="i-ghost">
+          <rect class="ghost-box" x="290" y="140" width="306" height="58" rx="10"/>
+          <text class="t-title" x="308" y="165" style="font-size:13px">nginx-svc 10.96.45.120:80</text>
+          <text class="t-sub" x="308" y="185">no process · no socket · nobody listens</text>
+        </g>
+
+        <rect class="kernel" x="40" y="220" width="556" height="152" rx="12"/>
+        <text class="t-zone" x="580" y="242" text-anchor="end">KERNEL · iptables nat table</text>
+        <g class="comp" id="i-c1">
+          <rect class="box" x="56" y="262" width="150" height="54" rx="8"/>
+          <text class="t-badge" x="68" y="284">KUBE-SERVICES</text>
+          <text class="t-small" x="68" y="302">dst 10.96.45.120:80?</text>
+        </g>
+        <g class="comp" id="i-c2">
+          <rect class="box" x="226" y="262" width="150" height="54" rx="8"/>
+          <text class="t-badge" x="238" y="284">KUBE-SVC-NGX</text>
+          <text class="t-small" x="238" y="302">pick one at random</text>
+        </g>
+        <path class="wire" d="M206,289 H226"/>
+        <g id="i-seps"></g>
+
+        <g class="comp" id="i-kp">
+          <rect class="box" x="40" y="392" width="260" height="50" rx="10"/>
+          <text class="t-title" x="58" y="414" style="font-size:14px">kube-proxy</text>
+          <text class="t-sub" x="58" y="432">watches endpoints · writes rules</text>
+        </g>
+        <path class="lookup" d="M170,392 V372"/>
+
+        <g id="i-pods"></g>
+        <g class="comp" id="i-eps">
+          <rect class="box" x="656" y="392" width="310" height="50" rx="10" style="stroke:var(--k8s)"/>
+          <text class="t-badge" x="672" y="413">EndpointSlice nginx-svc-x8z2k</text>
+          <text class="t-small" x="672" y="431" id="i-eps-list"></text>
+        </g>
+        <path class="lookup" d="M656,417 H300"/>
+        <text class="t-small" x="420" y="410">watch</text>
+        <g id="i-packets"></g>
+      </svg>
+    </div>
+    <div class="sim-status" id="i-status" aria-live="polite"></div>
+    <div class="bar">
+      <button class="btn primary" id="i-curl-btn">curl nginx-svc</button>
+      <button class="btn" id="i-ping">ping 10.96.45.120</button>
+      <button class="btn warn" id="i-kill">Delete a Pod</button>
+      <span class="spacer"></span>
+      <button class="btn" id="i-rules-btn" aria-pressed="false">iptables-save</button>
+    </div>
+    <pre class="term-log" id="i-log"></pre>
+  </div>
+</section>
+
+<section id="svc-types" data-nav="ClusterIP · NodePort · LB">
+  <header class="prose">
+    <div class="eyebrow">Service types</div>
+    <h2>Each type wraps the one before it</h2>
+    <p>NodePort is ClusterIP plus a port on every node. LoadBalancer is NodePort plus a real cloud load balancer.</p>
+  </header>
+  <div class="figure">
+    <div class="bar" style="border-top:0;border-bottom:1px solid var(--line)">
+      <div class="seg" role="group" aria-label="Service type">
+        <button data-type="ClusterIP" aria-pressed="true">ClusterIP</button>
+        <button data-type="NodePort" aria-pressed="false">NodePort</button>
+        <button data-type="LoadBalancer" aria-pressed="false">LoadBalancer</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="nest" id="t-nest" aria-hidden="true"><span class="n3">LoadBalancer<span class="n2">NodePort<span class="n1">ClusterIP</span></span></span></div>
+    </div>
+    <div class="scroll-x">
+      <svg id="types" data-type="ClusterIP" viewBox="0 0 1000 400" role="img" aria-label="Traffic path for the selected Service type">
+        <rect class="zone z-cp" x="420" y="12" width="564" height="376" rx="14"/>
+        <text class="t-zone" x="436" y="32">KIND CLUSTER</text>
+        <rect class="zone z-node" x="436" y="42" width="532" height="158" rx="12"/>
+        <text class="t-small" x="452" y="62">kind-worker · 172.18.0.3</text>
+        <rect class="zone z-node" x="436" y="214" width="532" height="158" rx="12"/>
+        <text class="t-small" x="452" y="234">kind-worker2 · 172.18.0.4</text>
+
+        <g class="comp" id="t-user">
+          <rect class="box" x="16" y="180" width="150" height="62" rx="10"/>
+          <text class="t-title" x="32" y="207">Browser</text>
+          <text class="t-sub" x="32" y="227">outside the cluster</text>
+        </g>
+        <g class="comp lb-part" id="t-lb">
+          <rect class="box" x="200" y="40" width="186" height="62" rx="10"/>
+          <text class="t-title" x="216" y="66">Cloud LB</text>
+          <text class="t-sub" x="216" y="86">203.0.113.10:80</text>
+        </g>
+        <g class="comp np-part" id="t-np1">
+          <rect class="box np-box" x="450" y="100" width="82" height="44" rx="8"/>
+          <text class="t-badge" x="463" y="127">:30080</text>
+        </g>
+        <g class="comp np-part" id="t-np2">
+          <rect class="box np-box" x="450" y="274" width="82" height="44" rx="8"/>
+          <text class="t-badge" x="463" y="301">:30080</text>
+        </g>
+        <g class="comp" id="t-r1">
+          <rect class="box" x="560" y="100" width="124" height="44" rx="8"/>
+          <text class="t-badge" x="572" y="120">rules</text>
+          <text class="t-small" x="572" y="135">10.96.45.120</text>
+        </g>
+        <g class="comp" id="t-r2">
+          <rect class="box" x="560" y="274" width="124" height="44" rx="8"/>
+          <text class="t-badge" x="572" y="294">rules</text>
+          <text class="t-small" x="572" y="309">10.96.45.120</text>
+        </g>
+        <g class="pod comp" id="t-p0"><rect class="box" x="760" y="70" width="190" height="44" rx="8"/><text class="t-badge" x="774" y="97">nginx · 10.244.1.7</text></g>
+        <g class="comp cip-part" id="t-curl"><rect class="box" x="760" y="140" width="190" height="44" rx="8" style="stroke:var(--signal)"/><text class="t-badge" x="774" y="167">curl-pod · client</text></g>
+        <g class="pod comp" id="t-p1"><rect class="box" x="760" y="244" width="190" height="44" rx="8"/><text class="t-badge" x="774" y="271">nginx · 10.244.2.3</text></g>
+        <g class="pod comp" id="t-p2"><rect class="box" x="760" y="314" width="190" height="44" rx="8"/><text class="t-badge" x="774" y="341">nginx · 10.244.2.9</text></g>
+
+        <g class="cip-part">
+          <path class="wire" d="M760,162 C 720,162 720,122 684,122"/>
+          <path class="wire blocked" d="M166,211 H410"/>
+          <text class="x-mark" x="412" y="218">✕</text>
+          <text class="t-small" x="190" y="200">no route from outside</text>
+        </g>
+        <g class="np-part">
+          <path class="wire" d="M166,205 C 300,205 300,122 450,122"/>
+          <path class="wire" d="M166,217 C 300,217 300,296 450,296"/>
+          <path class="wire" d="M532,122 H560"/><path class="wire" d="M532,296 H560"/>
+        </g>
+        <g class="lb-part">
+          <path class="wire" d="M166,195 C 200,195 170,71 200,71"/>
+          <path class="wire" d="M386,71 C 425,71 410,122 450,122"/>
+          <path class="wire" d="M386,71 C 440,71 400,296 450,296"/>
+        </g>
+        <g id="t-wires"></g>
+        <g id="t-packets"></g>
+      </svg>
+    </div>
+    <div class="sim-status" id="t-note"></div>
+    <div class="hist-out">
+      <pre class="term-log" id="t-yaml"></pre>
+      <pre class="term-log" id="t-get"></pre>
+    </div>
+  </div>
+</section>
+
+<section id="svc-ports" data-nav="port · targetPort · nodePort">
+  <header class="prose">
+    <div class="eyebrow">Three port fields</div>
+    <h2>Follow one request through the numbers</h2>
+    <p><b>nodePort</b> on the node, <b>port</b> on the ClusterIP, <b>targetPort</b> on the Pod. targetPort must match what the container listens on.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="ports" viewBox="0 0 1000 190" role="img" aria-label="A request goes from nodePort 30080 to port 80 on the ClusterIP to targetPort on the Pod">
+        <g class="comp" id="pt-0"><rect class="box" x="16" y="60" width="150" height="70" rx="10"/><text class="t-title" x="32" y="90">client</text><text class="t-sub" x="32" y="110">curl 172.18.0.3:30080</text></g>
+        <g class="comp" id="pt-1"><rect class="box np-box" x="226" y="60" width="180" height="70" rx="10"/><text class="t-badge" x="242" y="86">nodePort</text><text class="t-title" x="242" y="112" style="font-family:var(--f-mono)">30080</text></g>
+        <g class="comp" id="pt-2"><rect class="box" x="436" y="60" width="180" height="70" rx="10" style="stroke:var(--k8s)"/><text class="t-badge" x="452" y="86">port · ClusterIP</text><text class="t-title" x="452" y="112" style="font-family:var(--f-mono)">80</text></g>
+        <g class="comp" id="pt-3"><rect class="box" x="646" y="60" width="160" height="70" rx="10"/><text class="t-badge" x="662" y="86">targetPort · Pod</text><text class="t-title" x="662" y="112" style="font-family:var(--f-mono)" id="pt-tp">80</text></g>
+        <g class="comp" id="pt-4"><rect class="box" x="836" y="60" width="148" height="70" rx="10"/><text class="t-badge" x="852" y="86">nginx listens</text><text class="t-title" x="852" y="112" style="font-family:var(--f-mono)">:80</text></g>
+        <path class="wire" d="M166,95 H226"/><path class="wire" d="M406,95 H436"/><path class="wire" d="M616,95 H646"/><path class="wire" d="M806,95 H836" id="pt-last"/>
+        <text class="t-small" x="226" y="160">same on every node</text>
+        <text class="t-small" x="436" y="160">what other Pods use</text>
+        <text class="t-small" x="646" y="160" id="pt-hint">number or name</text>
+        <g id="pt-packets"></g>
+      </svg>
+    </div>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="targetPort">
+        <button data-tp="80" aria-pressed="true">targetPort: 80</button>
+        <button data-tp="http" aria-pressed="false">targetPort: http</button>
+        <button data-tp="8080" aria-pressed="false">targetPort: 8080</button>
+      </div>
+      <span class="spacer"></span>
+      <code id="pt-out" style="font-size:0.78rem"></code>
+    </div>
+  </div>
+</section>
+
+<section id="svc-select" data-nav="Selectors & endpoints">
+  <header class="prose">
+    <div class="eyebrow">Labels, not names</div>
+    <h2>Any Pod with the label is in</h2>
+    <p>The Service doesn't know about Deployments. <code>nginx-pod1</code> from pod.yaml also has <code>app: nginx</code>, so it gets a share of the traffic.</p>
+  </header>
+  <div class="figure">
+    <div class="flow">
+      <div class="card kdep"><span class="k">Service nginx-svc</span><span class="v">selector:</span>
+        <select class="sel" id="e-sel" aria-label="Selector">
+          <option value="app=nginx">app: nginx</option>
+          <option value="app=ngnix">app: ngnix (typo)</option>
+          <option value="app=curl">app: curl</option>
+        </select>
+      </div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="pods" id="e-pods"></div>
+    </div>
+    <pre class="term-log" id="e-log"></pre>
+  </div>
+</section>
+
+<section id="svc-more" data-nav="Worth knowing">
+  <header class="prose">
+    <div class="eyebrow">Also</div>
+    <h2>Worth knowing</h2>
+  </header>
+  <div class="dnsname" aria-label="DNS name parts">
+    <span style="--c:var(--signal)">nginx-svc<small>service</small></span>.<span style="--c:var(--tunnel)">default<small>namespace</small></span>.<span style="--c:var(--k8s)">svc.cluster.local<small>cluster domain</small></span>
+  </div>
+  <div class="minis">
+    <div class="mini"><b>Headless</b><code>clusterIP: None</code><p>No virtual IP, no rules. DNS returns every Pod IP. Used by StatefulSets.</p></div>
+    <div class="mini"><b>ExternalName</b><code>externalName: db.example.com</code><p>Only a DNS CNAME. No selector, no proxying.</p></div>
+    <div class="mini"><b>sessionAffinity</b><code>sessionAffinity: ClientIP</code><p>Same client IP keeps hitting the same Pod.</p></div>
+    <div class="mini"><b>externalTrafficPolicy</b><code>externalTrafficPolicy: Local</code><p>NodePort/LB only send to Pods on that node. Keeps the client IP, no extra hop.</p></div>
+    <div class="mini"><b>kube-proxy modes</b><code>iptables · ipvs · nftables</code><p>Same idea, different kernel tables. Cilium can replace kube-proxy with eBPF.</p></div>
+    <div class="mini"><b>Layer 4 only</b><code>Ingress / Gateway API</code><p>Services balance TCP/UDP connections. HTTP paths and hosts need Ingress or Gateway.</p></div>
+  </div>
+  <div class="cmds">
+    <button class="cmd-row"><code>kubectl get svc,endpointslices -o wide</code><span>Service + the Pod IPs behind it</span></button>
+    <button class="cmd-row"><code>kubectl describe svc nginx-svc</code><span>Check the Endpoints line first</span></button>
+    <button class="cmd-row"><code>kubectl expose deploy/nginx-deployment --name=nginx-svc --port=80</code><span>Create a Service without YAML</span></button>
+    <button class="cmd-row"><code>kubectl exec curl-pod -- curl -s nginx-svc</code><span>Test from inside the cluster</span></button>
+    <button class="cmd-row"><code>kubectl exec curl-pod -- nslookup nginx-svc</code><span>See what DNS returns</span></button>
+    <button class="cmd-row"><code>docker exec kind-worker iptables-save -t nat | grep nginx-svc</code><span>See the rules on a kind node</span></button>
+  </div>
 </section>
 </article>
 
@@ -1821,6 +2115,280 @@ $('#h-undo').onclick = () => hUndo();
 $('#h-undo-to').onclick = () => { const v = parseInt($('#h-to').value, 10); if (v) hUndo(v); };
 $('#h-reset').onclick = hInit;
 hInit();
+
+/* ================= services: iptables walk-through ================= */
+const ipt = $('#ipt'), iLayer = $('#i-packets'), iLogEl = $('#i-log'), iStatus = $('#i-status');
+const SEP_Y = [266, 306, 346], POD_Y = [101, 201, 301];
+const SEP_ID = ['7JQ2', 'KX4M', 'P9TD'];
+const iEps = [
+  { name: 'nginx-deployment-7c79c4bf97-2xk8d', ip: '10.244.1.7', node: 'kind-worker', live: true, n: 0 },
+  { name: 'nginx-deployment-7c79c4bf97-9fqlm', ip: '10.244.2.3', node: 'kind-worker2', live: true, n: 0 },
+  { name: 'nginx-deployment-7c79c4bf97-wt6zr', ip: '10.244.2.9', node: 'kind-worker2', live: true, n: 0 }
+];
+let iRules = false, iLines = [], iKilling = false;
+function iLog(lines, reset) { iLines = reset ? lines : [...iLines, ...lines].slice(-6); if (!iRules) iLogEl.innerHTML = iLines.join('\n'); }
+const iLive = () => iEps.filter(e => e.live);
+const prob = k => { const n = iLive().length; return k < n - 1 ? (1 / (n - k)).toFixed(3) : null; };
+function iRender() {
+  const seps = $('#i-seps'), pods = $('#i-pods');
+  seps.innerHTML = ''; pods.innerHTML = '';
+  let k = 0;
+  iEps.forEach((e, i) => {
+    const y = SEP_Y[i], py = POD_Y[i];
+    const g = mk('g', { class: 'comp sep' + (e.live ? '' : ' off-ep') + (e.fresh ? ' new-ep' : ''), id: 'i-sep' + i }, seps);
+    mk('rect', { class: 'box', x: 396, y: y - 16, width: 190, height: 32, rx: 6 }, g);
+    mk('text', { class: 't-small', x: 406, y: y + 4 }, g).textContent = e.live ? `SEP-${SEP_ID[i]} → ${e.ip}` : 'removed';
+    if (e.live) {
+      const p = prob(k++);
+      mk('text', { class: 't-small', x: 580, y: y + 4, 'text-anchor': 'end' }, g).textContent = p ? p.slice(1) : 'rest';
+    }
+    mk('path', { class: 'wire', d: `M376,289 C 386,289 386,${y} 396,${y}` }, seps);
+    mk('path', { class: 'wire', d: `M586,${y} C 625,${y} 620,${py} 656,${py}` }, seps);
+    const pg = mk('g', { class: 'pod comp' + (e.live ? '' : ' dying') + (e.fresh ? ' fresh' : ''), id: 'i-pod' + i }, pods);
+    mk('rect', { class: 'box', x: 656, y: py - 31, width: 310, height: 62, rx: 10 }, pg);
+    mk('text', { class: 't-title', x: 672, y: py - 8, style: 'font-size:12.5px' }, pg).textContent = e.name;
+    mk('text', { class: 't-sub', x: 672, y: py + 12 }, pg).textContent = `${e.ip} · ${e.node}`;
+    mk('text', { class: 't-status', x: 672, y: py + 25 }, pg).textContent = e.live ? 'Ready' : 'Terminating';
+    mk('text', { class: 't-count', x: 950, y: py + 8, 'text-anchor': 'end' }, pg).textContent = e.n;
+  });
+  $('#i-eps-list').textContent = iLive().map(e => e.ip).join(' · ') || '(no endpoints)';
+  if (iRules) iShowRules();
+}
+function iShowRules() {
+  const svc = 'KUBE-SVC-NGX';
+  const live = iEps.map((e, i) => [e, i]).filter(([e]) => e.live);
+  const lines = ['<span class="p">$</span> docker exec kind-worker iptables-save -t nat | grep nginx-svc',
+    `-A KUBE-SERVICES -d 10.96.45.120/32 -p tcp --dport 80 -j ${svc}`];
+  live.forEach(([e, i], k) => {
+    const p = prob(k);
+    lines.push(`-A ${svc} ${p ? `-m statistic --mode random --probability ${p} ` : ''}-j KUBE-SEP-${SEP_ID[i]}`);
+  });
+  live.forEach(([e, i]) => lines.push(`-A KUBE-SEP-${SEP_ID[i]} -p tcp -j DNAT --to-destination ${e.ip}:80`));
+  iLogEl.innerHTML = lines.join('\n');
+}
+async function iCurl() {
+  iStatus.textContent = '1 · curl asks CoreDNS for nginx-svc';
+  pulse($('#i-curl'));
+  await travel(iLayer, 'M240,78 H400', { label: 'nginx-svc?', speed: 0.45 });
+  pulse($('#i-dns'));
+  await travel(iLayer, 'M400,94 H240', { cls: 'pkt resp', label: '10.96.45.120', speed: 0.45 });
+  iStatus.textContent = '2 · packet leaves for 10.96.45.120:80, the kernel catches it first';
+  await travel(iLayer, 'M131,118 V262', { label: 'dst 10.96.45.120:80', speed: 0.3 });
+  pulse($('#i-c1'));
+  await travel(iLayer, 'M206,289 H226', { speed: 0.2 });
+  pulse($('#i-c2'));
+  // walk the rules top to bottom, like iptables does
+  const live = iEps.map((e, i) => i).filter(i => iEps[i].live);
+  let pick = live[live.length - 1];
+  for (let k = 0; k < live.length - 1; k++) if (Math.random() < 1 / (live.length - k)) { pick = live[k]; break; }
+  const e = iEps[pick], y = SEP_Y[pick], py = POD_Y[pick];
+  iStatus.textContent = `3 · random rule picks SEP-${SEP_ID[pick]}; DNAT rewrites dst to ${e.ip}`;
+  await travel(iLayer, `M376,289 C 386,289 386,${y} 396,${y}`, { speed: 0.2 });
+  pulse($('#i-sep' + pick));
+  await sleep(250);
+  if (!e.live) { iStatus.textContent = 'Endpoint vanished mid-flight. Retry.'; return; }
+  await travel(iLayer, `M586,${y} C 625,${y} 620,${py} 656,${py}`, { label: `dst ${e.ip}:80`, speed: 0.3 });
+  e.n++;
+  pulse($('#i-pod' + pick));
+  const cnt = $('#i-pod' + pick + ' .t-count'); if (cnt) cnt.textContent = e.n;
+  iStatus.textContent = `4 · ${e.name.slice(-5)} answers; conntrack rewrites the reply's source back to 10.96.45.120`;
+  await travel(iLayer, `M656,${py} C 620,${py} 625,${y} 586,${y} L396,${y} C 386,${y} 386,289 376,289 L131,289 L131,118`, { cls: 'pkt resp', label: 'src 10.96.45.120', speed: 0.6 });
+  pulse($('#i-curl'));
+  iLog([`<span class="p">$</span> kubectl exec curl-pod -- curl -s nginx-svc`, `<span class="ok">&lt;title&gt;Welcome to nginx!&lt;/title&gt;</span> <span class="dim"># from ${e.ip}</span>`]);
+}
+async function iPing() {
+  iStatus.textContent = 'ICMP to the ClusterIP: only TCP :80 has a rule';
+  await travel(iLayer, 'M131,118 V262', { label: 'ICMP → 10.96.45.120', speed: 0.3 });
+  pulse($('#i-c1'));
+  const x = mk('text', { class: 'drop', x: 120, y: 256 }, iLayer); x.textContent = '✕';
+  iStatus.textContent = 'No rule matches and nothing owns the IP, so nothing replies (iptables mode).';
+  iLog(['<span class="p">$</span> kubectl exec curl-pod -- ping -c 3 10.96.45.120', '<span class="err">3 packets transmitted, 0 received, 100% packet loss</span>']);
+  await sleep(1400); x.remove();
+}
+async function iSync(msg) {
+  pulse($('#i-eps'));
+  await travel(iLayer, 'M656,417 H300', { label: 'watch', speed: 0.5 });
+  pulse($('#i-kp'));
+  await travel(iLayer, 'M170,392 V372', { speed: 0.15 });
+  iRender();
+  iStatus.textContent = msg;
+}
+async function iKill() {
+  if (iKilling) return;
+  const live = iEps.filter(e => e.live);
+  const e = live[Math.floor(Math.random() * live.length)], i = iEps.indexOf(e);
+  iKilling = true; $('#i-kill').disabled = true;
+  iEps.forEach(x => (x.fresh = false));
+  iLog([`<span class="p">$</span> kubectl delete pod ${e.name}`], true);
+  e.live = false; iRender();
+  iStatus.textContent = 'Pod terminating → removed from the EndpointSlice';
+  await iSync(`kube-proxy rewrote the rules: ${iLive().length} endpoints, new probabilities`);
+  await sleep(1300);
+  Object.assign(e, { name: 'nginx-deployment-7c79c4bf97-' + sfx(), ip: '10.244.2.' + (10 + Math.floor(Math.random() * 80)), node: 'kind-worker2', live: true, fresh: true, n: 0 });
+  iStatus.textContent = `ReplicaSet made a replacement with a new IP: ${e.ip}`;
+  await sleep(500);
+  await iSync(`New Pod is Ready → back in the EndpointSlice → rules point at ${e.ip}. ClusterIP never changed.`);
+  iLog([`<span class="dim"># endpoints: ${iLive().map(x => x.ip).join(', ')}</span>`]);
+  iKilling = false; $('#i-kill').disabled = false;
+}
+$('#i-curl-btn').onclick = iCurl;
+$('#i-ping').onclick = iPing;
+$('#i-kill').onclick = iKill;
+$('#i-rules-btn').onclick = () => {
+  iRules = !iRules;
+  $('#i-rules-btn').setAttribute('aria-pressed', iRules);
+  $('#i-rules-btn').textContent = iRules ? 'hide rules' : 'iptables-save';
+  if (iRules) iShowRules(); else iLogEl.innerHTML = iLines.join('\n');
+};
+iRender();
+iStatus.textContent = 'Press curl. Watch the destination address change inside the kernel.';
+iLog(['<span class="p">$</span> kubectl get svc nginx-svc', 'NAME        TYPE        CLUSTER-IP     PORT(S)', 'nginx-svc   ClusterIP   10.96.45.120   80/TCP'], true);
+
+/* ================= services: types ================= */
+const typesSvg = $('#types'), tLayer = $('#t-packets');
+const T_POD_Y = [92, 266, 336];
+const T_R = [{ x: 684, y: 122 }, { x: 684, y: 296 }];
+const rToPod = (r, p) => { const ry = T_R[r].y - 10 + p * 10, cx = 718 + p * 6; return `M684,${ry} C ${cx},${ry} ${cx},${T_POD_Y[p]} 760,${T_POD_Y[p]}`; };
+[0, 1].forEach(r => [0, 1, 2].forEach(p => mk('path', { class: 'wire', d: rToPod(r, p), style: 'stroke-width:1.3' }, $('#t-wires'))));
+const T_INFO = {
+  ClusterIP: {
+    note: 'Default. Reachable only from inside the cluster: Pod → nginx-svc. Use it for service-to-service calls.',
+    yaml: ['spec:', '  type: ClusterIP      <span class="dim"># default, can omit</span>', '  selector: { app: nginx }', '  ports:', '  - port: 80', '    targetPort: 80'],
+    row: 'nginx-svc   ClusterIP      10.96.45.120   &lt;none&gt;         80/TCP', nest: 1
+  },
+  NodePort: {
+    note: 'Opens 30080 on every node, even nodes with no nginx Pod. The node may forward to a Pod on another node. On kind, nodes are Docker containers: expose the port with extraPortMappings.',
+    yaml: ['spec:', '  type: NodePort', '  selector: { app: nginx }', '  ports:', '  - port: 80', '    targetPort: 80', '    nodePort: 30080     <span class="dim"># 30000-32767, optional</span>'],
+    row: 'nginx-svc   NodePort       10.96.45.120   &lt;none&gt;         80:30080/TCP', nest: 2
+  },
+  LoadBalancer: {
+    note: 'The cloud controller creates a real load balancer that targets the NodePorts. On kind, EXTERNAL-IP stays <pending> unless you run cloud-provider-kind or MetalLB.',
+    yaml: ['spec:', '  type: LoadBalancer', '  selector: { app: nginx }', '  ports:', '  - port: 80', '    targetPort: 80     <span class="dim"># nodePort picked for you</span>'],
+    row: 'nginx-svc   LoadBalancer   10.96.45.120   203.0.113.10   80:30080/TCP', nest: 3
+  }
+};
+let tType = 'ClusterIP', tGen = 0, tN = 0;
+function tSet(type) {
+  tType = type; tGen++; tLayer.innerHTML = '';
+  typesSvg.dataset.type = type;
+  document.querySelectorAll('#svc-types [data-type]').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === type));
+  const I = T_INFO[type];
+  $('#t-note').textContent = I.note;
+  $('#t-yaml').innerHTML = I.yaml.join('\n');
+  $('#t-get').innerHTML = '<span class="p">$</span> kubectl get svc nginx-svc\nNAME        TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)\n' + I.row;
+  ['n1', 'n2', 'n3'].forEach((c, i) => $('#t-nest .' + c).classList.toggle('on', i < I.nest));
+}
+async function tTick() {
+  if (typesSvg.closest('article').hidden) return;
+  const g = tGen, alive = () => tGen === g;
+  const go = async (d, o = {}) => alive() && travel(tLayer, d, { alive, speed: 0.42, ease: false, ...o });
+  const pod = Math.floor(Math.random() * 3);
+  tN++;
+  if (tType === 'ClusterIP') {
+    if (tN % 3 === 0) {
+      pulse($('#t-user'));
+      if (await go('M166,211 H410', { label: 'from outside' })) { const x = mk('text', { class: 'drop', x: 404, y: 196 }, tLayer); x.textContent = '✕'; setTimeout(() => x.remove(), 700); }
+      return;
+    }
+    pulse($('#t-curl'));
+    if (!await go('M760,162 C 720,162 720,122 684,122', { label: 'nginx-svc' })) return;
+    pulse($('#t-r1'));
+    if (await go(rToPod(0, pod))) pulse($('#t-p' + pod));
+    return;
+  }
+  const node = Math.random() < 0.5 ? 0 : 1;
+  pulse($('#t-user'));
+  if (tType === 'LoadBalancer') {
+    if (!await go('M166,195 C 200,195 170,71 200,71', { label: '203.0.113.10' })) return;
+    pulse($('#t-lb'));
+    if (!await go(node ? 'M386,71 C 440,71 400,296 450,296' : 'M386,71 C 425,71 410,122 450,122')) return;
+  } else if (!await go(node ? 'M166,217 C 300,217 300,296 450,296' : 'M166,205 C 300,205 300,122 450,122', { label: (node ? '172.18.0.4' : '172.18.0.3') + ':30080' })) return;
+  pulse($('#t-np' + (node + 1)));
+  if (!await go(node ? 'M532,296 H560' : 'M532,122 H560')) return;
+  pulse($('#t-r' + (node + 1)));
+  if (await go(rToPod(node, pod))) pulse($('#t-p' + pod));
+}
+document.querySelectorAll('#svc-types [data-type]').forEach(b => (b.onclick = () => tSet(b.dataset.type)));
+tSet('ClusterIP');
+setInterval(tTick, reduce ? 1500 : 1400);
+
+/* ================= services: ports ================= */
+const ptLayer = $('#pt-packets');
+let ptMode = '80', ptGen = 0;
+const PT_OUT = {
+  '80': 'curl 172.18.0.3:30080 → 200 OK',
+  http: 'Named port: each Pod must declare ports: - name: http. pod.yaml does; deploy.yml doesn\'t, so those Pods are skipped.',
+  '8080': 'curl: (7) Failed to connect … Connection refused. nginx listens on 80, not 8080.'
+};
+function ptSet(m) {
+  ptMode = m; ptGen++; ptLayer.innerHTML = '';
+  document.querySelectorAll('#svc-ports [data-tp]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tp === m));
+  $('#pt-tp').textContent = m;
+  $('#pt-hint').textContent = m === 'http' ? '→ containerPort named http' : 'number or name';
+  const bad = m === '8080';
+  $('#pt-3').classList.toggle('bad', bad); $('#pt-4').classList.toggle('bad', bad); $('#pt-last').classList.toggle('bad', bad);
+  $('#pt-out').textContent = PT_OUT[m];
+}
+async function ptLoop() {
+  for (;;) {
+    await sleep(500);
+    if ($('#ports').closest('article').hidden) { await new Promise(r => setTimeout(r, 600)); continue; }
+    const g = ptGen, alive = () => ptGen === g, o = { alive, speed: 0.25 };
+    const tp = ptMode === 'http' ? '80' : ptMode;
+    pulse($('#pt-0'));
+    if (!await travel(ptLayer, 'M166,95 H226', { ...o, label: ':30080' })) continue;
+    pulse($('#pt-1'));
+    if (!await travel(ptLayer, 'M406,95 H436', { ...o, label: '10.96.45.120:80' })) continue;
+    pulse($('#pt-2'));
+    if (!await travel(ptLayer, 'M616,95 H646', { ...o, label: '10.244.2.3:' + tp })) continue;
+    pulse($('#pt-3'));
+    if (ptMode === '8080') {
+      if (!await travel(ptLayer, 'M806,95 H822', o)) continue;
+      const x = mk('text', { class: 'drop', x: 812, y: 84 }, ptLayer); x.textContent = '✕';
+      await sleep(900); x.remove(); continue;
+    }
+    if (await travel(ptLayer, 'M806,95 H836', o)) pulse($('#pt-4'));
+    await new Promise(r => setTimeout(r, reduce ? 1500 : 300));
+  }
+}
+document.querySelectorAll('#svc-ports [data-tp]').forEach(b => (b.onclick = () => ptSet(b.dataset.tp)));
+ptSet('80');
+ptLoop();
+
+/* ================= services: selector → endpoints ================= */
+const E_PODS = [
+  ['nginx-deployment-…-2xk8d', 'nginx', '10.244.1.7'],
+  ['nginx-deployment-…-9fqlm', 'nginx', '10.244.2.3'],
+  ['nginx-deployment-…-wt6zr', 'nginx', '10.244.2.9'],
+  ['nginx-pod1', 'nginx', '10.244.1.12'],
+  ['curl-pod', 'curl', '10.244.1.4']
+];
+const ePods = $('#e-pods');
+E_PODS.forEach(([n, app]) => {
+  const c = mkChip('ready' + (n === 'nginx-pod1' ? ' solo' : '') + (app === 'curl' ? ' v2' : ''), `${n} · app=${app}`);
+  ePods.append(c);
+});
+async function eSet() {
+  const want = $('#e-sel').value.split('=')[1];
+  const chips = [...ePods.children];
+  for (let i = 0; i < chips.length; i++) {
+    const hit = E_PODS[i][1] === want;
+    chips[i].classList.toggle('in', hit); chips[i].classList.toggle('out', !hit);
+    await sleep(110);
+  }
+  const ips = E_PODS.filter(p => p[1] === want).map(p => p[2]);
+  const shown = ips.length > 3 ? ips.slice(0, 3).join(',') + ` + ${ips.length - 3} more...` : ips.join(',') || '&lt;unset&gt;';
+  const res = want === 'nginx' ? '<span class="ok">200 OK</span> <span class="dim"># spread over 4 Pods, nginx-pod1 included</span>'
+    : want === 'curl' ? '<span class="err">curl: (7) Connection refused</span> <span class="dim"># matched curl-pod, nothing listens on 80</span>'
+    : '<span class="err">curl: (7) Connection refused</span> <span class="dim"># no endpoints: kube-proxy REJECTs</span>';
+  $('#e-log').innerHTML = `<span class="p">$</span> kubectl get endpointslices -l kubernetes.io/service-name=nginx-svc
+NAME              ADDRESSTYPE   PORTS   ENDPOINTS
+nginx-svc-x8z2k   IPv4          ${ips.length ? '80   ' : '&lt;unset&gt;'}   ${shown}
+<span class="p">$</span> kubectl exec curl-pod -- curl -s nginx-svc
+${res}`;
+}
+$('#e-sel').onchange = eSet;
+eSet();
 
 /* ================= deployments: copy commands ================= */
 document.querySelectorAll('.cmd-row').forEach(b => {
