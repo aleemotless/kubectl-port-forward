@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Tracing kubectl port-forward</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: a schematic field guide. One wide column for diagrams (1120px), prose held to ~65ch inside it. Packets are the only loud color. */
+:root {
+  --paper: #EDF0F3;
+  --surface: #F9FBFC;
+  --ink: #15212C;
+  --muted: #566977;
+  --line: #C6D0D8;
+  --signal: #C25F00;   /* packets, the request */
+  --tunnel: #0B7C85;   /* the tunnel, the response */
+  --k8s: #2D5FD3;      /* cluster objects */
+  --ok: #1D8549;
+  --danger: #C0352A;
+  --code-bg: #16212B;
+  --code-fg: #DCE5EC;
+  --code-dim: #8BA0B1;
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0D141B; --surface: #142029; --ink: #E3EAF0; --muted: #8FA2B2; --line: #2A3A47;
+    --signal: #F4A43C; --tunnel: #3EC3CB; --k8s: #7EA4FF; --ok: #55CC8A; --danger: #FF6E61;
+    --code-bg: #091016; --code-fg: #DCE5EC; --code-dim: #7D92A3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0D141B; --surface: #142029; --ink: #E3EAF0; --muted: #8FA2B2; --line: #2A3A47;
+  --signal: #F4A43C; --tunnel: #3EC3CB; --k8s: #7EA4FF; --ok: #55CC8A; --danger: #FF6E61;
+  --code-bg: #091016; --code-fg: #DCE5EC; --code-dim: #7D92A3;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+.prose { max-width: 66ch; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.015em; }
+h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.1; font-weight: 700; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; }
+code, kbd { font-family: var(--f-mono); font-size: 0.88em; }
+:not(pre) > code { background: color-mix(in srgb, var(--k8s) 10%, transparent); padding: 0.1em 0.35em; border-radius: 4px; }
+a { color: var(--k8s); }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; border-radius: 4px; }
+
+.eyebrow {
+  font: 600 0.72rem/1 var(--f-mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
+  display: flex; align-items: center; gap: 10px;
+}
+.eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--signal); }
+
+section { padding-block: 56px 8px; display: grid; gap: 22px; }
+section > header { display: grid; gap: 12px; }
+section > header p { color: var(--muted); font-size: 1.05rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 56px 24px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.hero h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 0.98; font-weight: 800; }
+.hero h1 .cmd { font-family: var(--f-mono); font-weight: 700; font-size: 0.5em; letter-spacing: -0.02em; display: block; color: var(--signal); margin-bottom: 14px; }
+.hero .lede { margin-top: 20px; font-size: 1.12rem; color: var(--muted); max-width: 52ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; padding: 0; list-style: none; }
+.facts li { font: 500 0.78rem/1 var(--f-mono); border: 1px solid var(--line); background: var(--surface); padding: 8px 10px; border-radius: 999px; }
+.facts li b { color: var(--tunnel); font-weight: 700; }
+
+.term { background: var(--code-bg); color: var(--code-fg); border-radius: 12px; overflow: hidden; box-shadow: 0 18px 40px -24px rgba(10, 20, 30, 0.55); min-width: 0; }
+.term-bar { display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); align-items: center; }
+.term-bar i { width: 10px; height: 10px; border-radius: 50%; background: #3A4A57; }
+.term-bar span { margin-left: 8px; font: 0.72rem var(--f-mono); color: var(--code-dim); }
+.term pre { margin: 0; padding: 16px 18px 20px; font: 0.86rem/1.75 var(--f-mono); overflow-x: auto; }
+.p { color: #F4A43C; }
+.dim { color: var(--code-dim); }
+.cursor { display: inline-block; width: 0.55em; height: 1.1em; background: var(--code-fg); vertical-align: -0.2em; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- diagram shared ---------- */
+.figure { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll-x svg { display: block; width: 100%; min-width: 760px; height: auto; }
+svg text { font-family: var(--f-body); }
+.zone { stroke-width: 1; }
+.z-laptop { fill: color-mix(in srgb, var(--signal) 6%, transparent); stroke: color-mix(in srgb, var(--signal) 30%, transparent); }
+.z-cp { fill: color-mix(in srgb, var(--k8s) 6%, transparent); stroke: color-mix(in srgb, var(--k8s) 28%, transparent); }
+.z-node { fill: color-mix(in srgb, var(--tunnel) 6%, transparent); stroke: color-mix(in srgb, var(--tunnel) 28%, transparent); }
+.t-zone { fill: var(--muted); font: 700 11px var(--f-mono); letter-spacing: 0.12em; }
+.t-title { fill: var(--ink); font: 600 15px var(--f-body); }
+.t-sub { fill: var(--muted); font: 11px var(--f-mono); }
+.t-small { fill: var(--muted); font: 10.5px var(--f-mono); }
+.box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke 0.25s, fill 0.25s; }
+.podbox { fill: color-mix(in srgb, var(--k8s) 5%, var(--surface)); stroke: var(--k8s); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.comp { transition: opacity 0.3s; }
+.comp.ghost { opacity: 0.28; }
+.comp.hl .box { stroke: var(--signal); stroke-width: 2.5; }
+.comp.pulse .box { animation: pulse 0.7s ease-out; }
+@keyframes pulse { 0% { fill: color-mix(in srgb, var(--signal) 32%, var(--surface)); } 100% { fill: var(--surface); } }
+.wire { stroke: var(--line); stroke-width: 2; fill: none; }
+.tunnel { fill: none; stroke: var(--tunnel); stroke-width: 18; stroke-linecap: round; stroke-linejoin: round; opacity: 0.2; transition: opacity 0.4s; }
+.tunnel-core { fill: none; stroke: var(--tunnel); stroke-width: 2; stroke-dasharray: 5 7; animation: flow 0.9s linear infinite; transition: opacity 0.4s; }
+.off { opacity: 0 !important; }
+@keyframes flow { to { stroke-dashoffset: -12; } }
+.pkt circle { fill: var(--signal); stroke: var(--surface); stroke-width: 2.5; }
+.pkt.resp circle { fill: var(--tunnel); }
+.pkt-label { fill: var(--ink); font: 700 11px var(--f-mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.badge-r { fill: color-mix(in srgb, var(--signal) 14%, var(--surface)); stroke: var(--signal); stroke-width: 1; }
+.t-badge { fill: var(--ink); font: 600 10.5px var(--f-mono); }
+.legend-line { stroke: var(--tunnel); stroke-width: 10; opacity: 0.3; stroke-linecap: round; }
+
+/* ---------- journey stepper ---------- */
+.journey-ui { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); border-top: 1px solid var(--line); }
+.steps { list-style: none; margin: 0; padding: 10px; display: grid; gap: 2px; border-right: 1px solid var(--line); counter-reset: s; align-content: start; }
+.steps button {
+  width: 100%; text-align: left; background: none; border: 0; color: var(--ink); font: 500 0.92rem/1.3 var(--f-body);
+  padding: 9px 10px; border-radius: 8px; cursor: pointer; display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center;
+}
+.steps button::before { counter-increment: s; content: counter(s); font: 700 0.75rem/26px var(--f-mono); width: 26px; height: 26px; text-align: center; border-radius: 50%; border: 1.5px solid var(--line); color: var(--muted); }
+.steps button:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.steps button[aria-current="step"] { background: color-mix(in srgb, var(--signal) 12%, transparent); }
+.steps button[aria-current="step"]::before { background: var(--signal); border-color: var(--signal); color: var(--surface); }
+.steps button.done::before { border-color: var(--signal); color: var(--signal); }
+.detail { padding: 22px 26px 26px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.detail .kicker { font: 600 0.72rem var(--f-mono); color: var(--signal); letter-spacing: 0.1em; text-transform: uppercase; }
+.detail h3 { font-size: 1.4rem; }
+.detail p { color: var(--ink); max-width: 64ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  font: 600 0.85rem/1 var(--f-body); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color 0.2s, background 0.2s;
+}
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.primary:hover { background: color-mix(in srgb, var(--ink) 85%, var(--signal)); }
+.btn.warn { border-color: var(--danger); color: var(--danger); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+pre.code { margin: 0; background: var(--code-bg); color: var(--code-fg); font: 0.8rem/1.7 var(--f-mono); padding: 14px 16px; border-radius: 10px; overflow-x: auto; position: relative; }
+.codewrap { position: relative; min-width: 0; }
+.copy { position: absolute; top: 8px; right: 8px; font: 600 0.7rem var(--f-mono); background: rgba(255,255,255,0.08); color: var(--code-fg); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+.copy:hover { background: rgba(255,255,255,0.16); }
+
+/* ---------- anatomy ---------- */
+.anatomy { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px; display: grid; gap: 26px; }
+.cmdline { font: 500 clamp(1rem, 2.6vw, 1.6rem)/1.9 var(--f-mono); display: flex; flex-wrap: wrap; column-gap: 0.6em; row-gap: 4px; }
+.cmdline span { border-bottom: 3px solid var(--c); padding-bottom: 2px; transition: background 0.2s; border-radius: 3px 3px 0 0; cursor: default; }
+.cmdline span.lit, .cmdline span:hover { background: color-mix(in srgb, var(--c) 16%, transparent); }
+.cmdline .glue { border: 0; padding: 0; margin: 0 -0.6em; color: var(--muted); }
+.parts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 26px; padding: 0; margin: 0; list-style: none; }
+.parts li { border-top: 3px solid var(--c); padding-top: 10px; display: grid; gap: 4px; transition: background 0.2s; }
+.parts li.lit { background: color-mix(in srgb, var(--c) 8%, transparent); }
+.parts b { font: 700 0.85rem var(--f-mono); }
+.parts p { color: var(--muted); font-size: 0.93rem; }
+
+/* ---------- side-by-side text + figure ---------- */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 28px; align-items: start; }
+.split .prose { display: grid; gap: 14px; }
+.stat { font: 600 0.82rem/1.5 var(--f-mono); color: var(--muted); padding: 12px 16px; border-top: 1px solid var(--line); }
+.stat b { color: var(--ink); }
+.figure .bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 3px; background: var(--paper); }
+.seg button { font: 600 0.8rem/1 var(--f-body); border: 0; background: none; color: var(--muted); padding: 8px 11px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+.spacer { flex: 1; }
+
+.lane-data { fill: none; stroke-width: 3; stroke-dasharray: 10 8; animation: flow2 0.8s linear infinite; }
+.lane-err { fill: none; stroke-width: 1.2; stroke-dasharray: 2 5; opacity: 0.8; }
+@keyframes flow2 { to { stroke-dashoffset: -18; } }
+.pipe { fill: color-mix(in srgb, var(--tunnel) 9%, transparent); stroke: var(--tunnel); stroke-width: 2; }
+
+/* service demo */
+#svc[data-mode="pf"] .svc-only, #svc[data-mode="svc"] .pf-only { display: none; }
+.sv-tunnel { fill: none; stroke: var(--tunnel); stroke-width: 14; opacity: 0.22; stroke-linecap: round; }
+.sv-tunnel-core { fill: none; stroke: var(--tunnel); stroke-width: 2; stroke-dasharray: 5 7; animation: flow 0.9s linear infinite; }
+.broken .sv-tunnel { stroke: var(--danger); opacity: 0.18; }
+.broken .sv-tunnel-core { stroke: var(--danger); animation: none; stroke-dasharray: 3 9; }
+.lookup { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 5; }
+.pod .box { stroke: var(--k8s); }
+.pod.unused { opacity: 0.4; }
+.pod.dying .box { stroke: var(--danger); stroke-dasharray: 4 4; }
+.pod.gone { opacity: 0.15; }
+.pod.fresh .box { stroke: var(--ok); stroke-width: 2.5; }
+.t-status { font: 600 10.5px var(--f-mono); fill: var(--ok); }
+.dying .t-status { fill: var(--danger); }
+.t-count { font: 700 18px var(--f-mono); fill: var(--ink); }
+.term-log { margin: 0; background: var(--code-bg); color: var(--code-fg); font: 0.78rem/1.7 var(--f-mono); padding: 12px 16px; min-height: 8.6em; overflow-x: auto; border-top: 1px solid var(--line); }
+.term-log .err { color: #FF8A7E; }
+.term-log .ok { color: #7FD9A6; }
+.callout { border-left: 3px solid var(--signal); padding: 4px 0 4px 14px; color: var(--ink); }
+
+/* ---------- builder ---------- */
+.builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.form { padding: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; align-content: start; border-right: 1px solid var(--line); }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field label { font: 600 0.72rem var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.field input, .field select { font: 500 0.95rem var(--f-mono); padding: 10px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); width: 100%; }
+.field input:focus, .field select:focus { outline: 2px solid var(--signal); outline-offset: 0; border-color: transparent; }
+.field small { color: var(--muted); font-size: 0.78rem; }
+.out { padding: 22px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.route { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: 600 0.8rem var(--f-mono); }
+.route span { padding: 6px 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); }
+.route span.l { border-color: var(--signal); color: var(--signal); }
+.route span.r { border-color: var(--k8s); color: var(--k8s); }
+.route i { font-style: normal; color: var(--muted); }
+.notes { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.notes li { font-size: 0.9rem; padding: 9px 12px; border-radius: 8px; background: color-mix(in srgb, var(--k8s) 8%, transparent); border-left: 3px solid var(--k8s); }
+.notes li.warn { background: color-mix(in srgb, var(--danger) 9%, transparent); border-left-color: var(--danger); }
+
+/* ---------- table ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.92rem; }
+th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.72rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-family: var(--f-mono); font-weight: 600; white-space: nowrap; }
+tr.me td { background: color-mix(in srgb, var(--signal) 8%, transparent); }
+.yes { color: var(--ok); font-weight: 600; }
+.no { color: var(--danger); font-weight: 600; }
+
+/* ---------- errors ---------- */
+.errors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.err-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.err-card pre { margin: 0; font: 0.76rem/1.6 var(--f-mono); color: var(--danger); white-space: pre-wrap; word-break: break-word; background: color-mix(in srgb, var(--danger) 7%, transparent); padding: 10px 12px; border-radius: 8px; }
+.err-card p { font-size: 0.93rem; color: var(--muted); }
+.err-card p b { color: var(--ink); }
+
+.cheats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cheat { display: grid; gap: 6px; min-width: 0; }
+.cheat span { font-size: 0.88rem; color: var(--muted); }
+
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+
+@media (max-width: 860px) {
+  .hero, .split, .builder { grid-template-columns: minmax(0, 1fr); }
+  .journey-ui { grid-template-columns: minmax(0, 1fr); }
+  .steps { border-right: 0; border-bottom: 1px solid var(--line); }
+  .form { border-right: 0; border-bottom: 1px solid var(--line); }
+  .parts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .parts, .errors, .cheats, .form { grid-template-columns: minmax(0, 1fr); }
+  .anatomy { padding: 20px; }
+  .detail { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div>
+    <div class="eyebrow">Kubernetes networking · kubectl</div>
+    <h1 style="margin-top:18px"><span class="cmd">kubectl port-forward</span>A private tunnel from localhost into one Pod.</h1>
+    <p class="lede">Your Pod has no public address, and you don't want to give it one just to poke at it. Port-forward borrows the connection you already have to the API server and threads a TCP tunnel through it, all the way into the Pod's network namespace.</p>
+    <ul class="facts">
+      <li><b>TCP</b> only</li>
+      <li>binds <b>127.0.0.1</b> by default</li>
+      <li>targets <b>one Pod</b></li>
+      <li>lives as long as the <b>command</b></li>
+    </ul>
+  </div>
+  <div class="term" aria-label="Example terminal session">
+    <div class="term-bar"><i></i><i></i><i></i><span>~/kubernetes-course</span></div>
+<pre><span class="p">$</span> kubectl apply -f pod.yaml
+pod/nginx-pod1 created
+<span class="p">$</span> kubectl port-forward pod/nginx-pod1 8080:80
+Forwarding from 127.0.0.1:8080 -&gt; 80
+Forwarding from [::1]:8080 -&gt; 80
+<span class="dim">Handling connection for 8080</span>
+<span class="dim">Handling connection for 8080</span>
+<span class="cursor"></span></pre>
+  </div>
+</header>
+
+<!-- ================= JOURNEY ================= -->
+<section id="journey-sec">
+  <header class="prose">
+    <div class="eyebrow">The journey of one request</div>
+    <h2>Seven hops from your browser to nginx</h2>
+    <p>Pick a step, or press <b>Play all</b>. The amber dot is your request; the teal pipe is the tunnel. Watch which parts exist before you ever type a URL.</p>
+  </header>
+
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="journey" viewBox="0 0 1000 440" role="img" aria-label="Diagram: browser, kubectl, kube-apiserver, kubelet, container runtime, and the nginx Pod, connected by a tunnel">
+        <!-- zones -->
+        <rect class="zone z-laptop" x="16" y="16" width="292" height="408" rx="14"/>
+        <text class="t-zone" x="34" y="42">YOUR LAPTOP</text>
+        <rect class="zone z-cp" x="340" y="16" width="250" height="408" rx="14"/>
+        <text class="t-zone" x="358" y="42">CONTROL PLANE</text>
+        <rect class="zone z-node" x="622" y="16" width="362" height="408" rx="14"/>
+        <text class="t-zone" x="640" y="42">WORKER NODE · node-1</text>
+
+        <!-- wires -->
+        <path class="wire" d="M162,140 V190"/>
+        <path class="wire" d="M162,250 V292"/>
+        <path class="wire" d="M465,250 V292"/>
+        <path class="wire" d="M284,335 H364 M566,335 H646 M721,292 V244 M796,206 H893 V186"/>
+
+        <!-- tunnel pieces -->
+        <g id="t1"><path class="tunnel" d="M284,335 H364"/><path class="tunnel-core" d="M284,335 H364"/></g>
+        <g id="t2"><path class="tunnel" d="M566,335 H646"/><path class="tunnel-core" d="M566,335 H646"/></g>
+        <g id="t3"><path class="tunnel" d="M721,292 V244 M796,206 H893 V186"/><path class="tunnel-core" d="M721,292 V244 M796,206 H893 V186"/></g>
+
+        <!-- laptop -->
+        <g class="comp" id="c-browser">
+          <rect class="box" x="40" y="64" width="244" height="76" rx="10"/>
+          <text class="t-title" x="58" y="94">Browser / curl</text>
+          <text class="t-sub" x="58" y="118">GET http://localhost:8080/</text>
+        </g>
+        <g class="comp" id="c-listener">
+          <rect class="box" x="40" y="190" width="244" height="60" rx="10"/>
+          <text class="t-title" x="58" y="216">127.0.0.1:8080</text>
+          <text class="t-sub" x="58" y="237">LISTEN · socket owned by kubectl</text>
+        </g>
+        <g class="comp" id="c-kubectl">
+          <rect class="box" x="40" y="292" width="244" height="86" rx="10"/>
+          <text class="t-title" x="58" y="322">kubectl</text>
+          <text class="t-sub" x="58" y="346">port-forward nginx-pod1</text>
+          <text class="t-sub" x="58" y="363">8080:80</text>
+        </g>
+        <g id="stream-badge" class="comp">
+          <rect class="badge-r" x="40" y="390" width="244" height="24" rx="6"/>
+          <text class="t-badge" x="52" y="406">stream #1 · data + error · port 80</text>
+        </g>
+
+        <!-- control plane -->
+        <g class="comp" id="c-rbac">
+          <rect class="box" x="364" y="180" width="202" height="70" rx="10"/>
+          <text class="t-title" x="382" y="208">AuthN + RBAC</text>
+          <text class="t-sub" x="382" y="230">create pods/portforward</text>
+        </g>
+        <g class="comp" id="c-api">
+          <rect class="box" x="364" y="292" width="202" height="86" rx="10"/>
+          <text class="t-title" x="382" y="322">kube-apiserver</text>
+          <text class="t-sub" x="382" y="346">POST …/pods/nginx-pod1</text>
+          <text class="t-sub" x="382" y="363">     /portforward</text>
+        </g>
+
+        <!-- node -->
+        <g class="comp" id="c-kubelet">
+          <rect class="box" x="646" y="292" width="150" height="86" rx="10"/>
+          <text class="t-title" x="664" y="322">kubelet</text>
+          <text class="t-sub" x="664" y="346">:10250</text>
+          <text class="t-sub" x="664" y="363">/portForward/…</text>
+        </g>
+        <g class="comp" id="c-runtime">
+          <rect class="box" x="646" y="168" width="150" height="76" rx="10"/>
+          <text class="t-title" x="664" y="198">containerd</text>
+          <text class="t-sub" x="664" y="222">CRI PortForward</text>
+        </g>
+        <g class="comp" id="c-pod">
+          <rect class="podbox" x="818" y="52" width="150" height="326" rx="12"/>
+          <text class="t-title" x="832" y="76" style="font-size:13px">Pod nginx-pod1</text>
+          <text class="t-small" x="832" y="92">netns · 10.244.1.7</text>
+          <text class="t-small" x="832" y="250">dials</text>
+          <text class="t-small" x="832" y="265">localhost:80</text>
+          <text class="t-small" x="832" y="280">from inside this</text>
+          <text class="t-small" x="832" y="295">network namespace</text>
+        </g>
+        <g class="comp" id="c-nginx">
+          <rect class="box" x="834" y="104" width="118" height="82" rx="8"/>
+          <text class="t-title" x="848" y="134">nginx</text>
+          <text class="t-sub" x="848" y="156">listening</text>
+          <text class="t-sub" x="848" y="172">0.0.0.0:80</text>
+        </g>
+
+        <!-- legend -->
+        <line class="legend-line" x1="370" y1="404" x2="398" y2="404"/>
+        <text class="t-small" x="408" y="408">tunnel: one TLS connection, upgraded to WebSocket</text>
+
+        <g id="j-packets"></g>
+      </svg>
+    </div>
+    <div class="journey-ui">
+      <ol class="steps" id="steps"></ol>
+      <div class="detail" aria-live="polite">
+        <div class="kicker" id="d-kicker">Overview</div>
+        <h3 id="d-title">The whole path, established</h3>
+        <p id="d-body"></p>
+        <div class="codewrap"><pre class="code" id="d-code"></pre></div>
+        <div class="controls">
+          <button class="btn" id="b-prev">← Back</button>
+          <button class="btn" id="b-replay">Replay step</button>
+          <button class="btn" id="b-next">Next →</button>
+          <button class="btn primary" id="b-all">Play all</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ANATOMY ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">Anatomy of the command</div>
+    <h2>Read it left to right: where, what, and which two ports</h2>
+  </header>
+  <div class="anatomy">
+    <div class="cmdline" id="cmdline">
+      <span data-k="a" style="--c: var(--muted)">kubectl port-forward</span>
+      <span data-k="b" style="--c: var(--k8s)">-n default</span>
+      <span data-k="c" style="--c: var(--k8s)">pod/nginx-pod1</span>
+      <span data-k="d" style="--c: var(--signal)">8080</span><span class="glue">:</span><span data-k="e" style="--c: var(--tunnel)">80</span>
+      <span data-k="f" style="--c: var(--ok)">--address 127.0.0.1</span>
+    </div>
+    <ul class="parts" id="parts">
+      <li data-k="a" style="--c: var(--muted)"><b>kubectl port-forward</b><p>Runs in the foreground. The tunnel exists only while this process does; Ctrl-C closes it.</p></li>
+      <li data-k="b" style="--c: var(--k8s)"><b>-n default</b><p>Namespace of the target. Leave it out and kubectl uses your current context's namespace.</p></li>
+      <li data-k="c" style="--c: var(--k8s)"><b>pod/nginx-pod1</b><p>The target. <code>deploy/</code>, <code>rs/</code>, <code>sts/</code> and <code>svc/</code> work too, but kubectl resolves them to a single Pod first.</p></li>
+      <li data-k="d" style="--c: var(--signal)"><b>8080</b> local port<p>Opened on your machine. Write <code>:80</code> to get a random free port, or just <code>80</code> to use the same number on both sides.</p></li>
+      <li data-k="e" style="--c: var(--tunnel)"><b>80</b> remote port<p>The port inside the Pod: your <code>containerPort</code>. With <code>svc/</code>, it is the Service port, which kubectl maps to the <code>targetPort</code>.</p></li>
+      <li data-k="f" style="--c: var(--ok)"><b>--address</b><p>Which local interfaces to bind. The default <code>localhost</code> means 127.0.0.1 and ::1, so only you can connect. <code>0.0.0.0</code> opens it to your network.</p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= MULTIPLEX ================= -->
+<section>
+  <div class="split">
+    <div class="prose">
+      <div class="eyebrow">Inside the pipe</div>
+      <h2>One tunnel, many streams</h2>
+      <p>kubectl dials the API server once. Every TCP connection you open to <code>localhost:8080</code> becomes a new <b>pair of streams</b> inside that single connection:</p>
+      <p><b>data</b> carries your bytes in both directions. <b>error</b> is a side channel where the Pod's end reports problems such as "connection refused".</p>
+      <p>Each stream carries headers that name the remote <code>port</code> and a <code>requestID</code>, so the far side can keep the conversations apart. Add connections to see them pile up.</p>
+    </div>
+    <div class="figure">
+      <div class="scroll-x">
+        <svg id="mux" viewBox="0 0 1000 320" role="img" aria-label="Several local connections multiplexed as stream pairs inside one tunnel, ending at nginx port 80">
+          <g id="mux-g"></g>
+        </svg>
+      </div>
+      <div class="bar">
+        <button class="btn" id="mux-add">Open a connection</button>
+        <button class="btn" id="mux-rm">Close one</button>
+      </div>
+      <div class="stat" id="mux-stat"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SERVICE GOTCHA ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">The Service trap</div>
+    <h2><code style="font-size:0.85em">svc/web</code> does not mean load balancing</h2>
+    <p>When you forward to a Service, kubectl only uses it as a lookup. It reads the selector, picks one running Pod, and tunnels straight to it. kube-proxy and the ClusterIP never see your traffic. Compare that with how traffic reaches a Service from inside the cluster, then delete the Pod that's serving.</p>
+  </header>
+  <div class="figure">
+    <div class="scroll-x">
+      <svg id="svc" data-mode="pf" viewBox="0 0 1000 330" role="img" aria-label="Port-forward to a Service picks one Pod, while in-cluster traffic is spread across all Pods">
+        <rect class="zone z-node" x="300" y="12" width="684" height="306" rx="14"/>
+        <text class="t-zone" x="318" y="36">CLUSTER · namespace default</text>
+
+        <!-- client -->
+        <g class="comp">
+          <rect class="box" x="16" y="128" width="190" height="84" rx="10"/>
+          <text class="t-title pf-only" x="34" y="160">Your laptop</text>
+          <text class="t-sub pf-only" x="34" y="182">kubectl port-forward</text>
+          <text class="t-sub pf-only" x="34" y="198">svc/web 8080:80</text>
+          <text class="t-title svc-only" x="34" y="160">Pod: client</text>
+          <text class="t-sub svc-only" x="34" y="182">curl http://web</text>
+          <text class="t-sub svc-only" x="34" y="198">(in the cluster)</text>
+        </g>
+
+        <!-- service -->
+        <g class="comp">
+          <rect class="box" x="340" y="128" width="200" height="84" rx="10" style="stroke: var(--k8s)"/>
+          <text class="t-title" x="358" y="160">svc/web</text>
+          <text class="t-sub" x="358" y="182">ClusterIP 10.96.12.40</text>
+          <text class="t-sub" x="358" y="198">selector app=web</text>
+        </g>
+
+        <!-- pf mode paths -->
+        <g class="pf-only" id="pf-paths">
+          <path class="lookup" d="M206,190 H340"/>
+          <text class="t-small" x="214" y="232">1 · lookup only:</text>
+          <text class="t-small" x="214" y="247">which Pods match?</text>
+          <path class="sv-tunnel" id="sv-tunnel-d" d="M206,150 C 260,150 250,62 330,62 L 690,62 C 705,62 710,64 720,64"/>
+          <path class="sv-tunnel-core" d="M206,150 C 260,150 250,62 330,62 L 690,62 C 705,62 710,64 720,64"/>
+          <text class="t-small" x="350" y="52">2 · tunnel to one Pod (through API server + kubelet)</text>
+        </g>
+        <!-- svc mode paths -->
+        <g class="svc-only">
+          <path class="wire" d="M206,170 H340"/>
+          <path class="wire" id="s2p0" d="M540,170 C 630,170 630,64 720,64"/>
+          <path class="wire" id="s2p1" d="M540,170 H720"/>
+          <path class="wire" id="s2p2" d="M540,170 C 630,170 630,276 720,276"/>
+          <text class="t-small" x="556" y="236">kube-proxy rules</text>
+          <text class="t-small" x="556" y="251">spread connections</text>
+        </g>
+
+        <!-- pods -->
+        <g class="pod comp" id="pod0">
+          <rect class="box" x="720" y="34" width="244" height="60" rx="10"/>
+          <text class="t-title" x="738" y="60" style="font-size:13px" data-name>web-5d8f-x7k2p</text>
+          <text class="t-status" x="738" y="80" data-status>Running</text>
+          <text class="t-count" x="944" y="72" text-anchor="end" data-count>0</text>
+        </g>
+        <g class="pod comp" id="pod1">
+          <rect class="box" x="720" y="140" width="244" height="60" rx="10"/>
+          <text class="t-title" x="738" y="166" style="font-size:13px" data-name>web-5d8f-q9hmc</text>
+          <text class="t-status" x="738" y="186" data-status>Running</text>
+          <text class="t-count" x="944" y="178" text-anchor="end" data-count>0</text>
+        </g>
+        <g class="pod comp" id="pod2">
+          <rect class="box" x="720" y="246" width="244" height="60" rx="10"/>
+          <text class="t-title" x="738" y="272" style="font-size:13px" data-name>web-5d8f-ln4tz</text>
+          <text class="t-status" x="738" y="292" data-status>Running</text>
+          <text class="t-count" x="944" y="284" text-anchor="end" data-count>0</text>
+        </g>
+        <text class="t-small" x="964" y="324" text-anchor="end">number = requests served</text>
+        <g id="sv-packets"></g>
+      </svg>
+    </div>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Traffic mode">
+        <button id="m-pf" aria-pressed="true">kubectl port-forward svc/web</button>
+        <button id="m-svc" aria-pressed="false">In-cluster traffic</button>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn warn" id="sv-kill">Delete the serving Pod</button>
+      <button class="btn" id="sv-reset">Reset</button>
+    </div>
+    <pre class="term-log" id="sv-log" aria-live="polite"></pre>
+  </div>
+  <p class="callout prose">Port-forward is a debugging tool, not an exposure method. If the Pod restarts, gets rescheduled, or is replaced by a rollout, kubectl prints <code>lost connection to pod</code> and exits. It never reconnects on its own.</p>
+</section>
+
+<!-- ================= BUILDER ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">Build your command</div>
+    <h2>Fill in the blanks, get the command and what it will print</h2>
+  </header>
+  <div class="builder">
+    <form class="form" id="bf" autocomplete="off">
+      <div class="field">
+        <label for="f-kind">Target kind</label>
+        <select id="f-kind">
+          <option value="pod">pod</option>
+          <option value="deploy">deployment</option>
+          <option value="sts">statefulset</option>
+          <option value="svc">service</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-name">Name</label>
+        <input id="f-name" value="nginx-pod1" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="f-ns">Namespace</label>
+        <input id="f-ns" value="default" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="f-addr">Bind address</label>
+        <select id="f-addr">
+          <option value="localhost">localhost (only you)</option>
+          <option value="0.0.0.0">0.0.0.0 (your whole network)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-local">Local port</label>
+        <input id="f-local" value="8080" inputmode="numeric">
+        <small>Leave empty for a random port</small>
+      </div>
+      <div class="field">
+        <label for="f-remote">Remote port</label>
+        <input id="f-remote" value="80" inputmode="numeric">
+        <small id="f-remote-hint">containerPort in the Pod</small>
+      </div>
+    </form>
+    <div class="out">
+      <div class="route" id="b-route"></div>
+      <div class="codewrap"><pre class="code" id="b-cmd" data-copy></pre></div>
+      <div class="codewrap"><pre class="code" id="b-out" style="color: var(--code-dim)"></pre></div>
+      <ul class="notes" id="b-notes"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMPARISON ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">When to reach for it</div>
+    <h2>Port-forward next to the other ways in</h2>
+  </header>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>Who can reach it</th><th>Load balanced</th><th>Survives Pod restart</th><th>Good for</th></tr></thead>
+      <tbody>
+        <tr class="me"><td>kubectl port-forward</td><td>You, on localhost, with RBAC rights to the Pod</td><td class="no">No, one Pod</td><td class="no">No</td><td>Debugging, admin UIs, a quick psql into a database</td></tr>
+        <tr><td>kubectl proxy</td><td>You, on localhost</td><td>Via Service proxy path</td><td class="yes">Yes</td><td>Calling the API server, HTTP-only peeks at Services</td></tr>
+        <tr><td>NodePort</td><td>Anyone who can reach a node IP</td><td class="yes">Yes</td><td class="yes">Yes</td><td>Labs, bare metal, behind your own load balancer</td></tr>
+        <tr><td>LoadBalancer</td><td>The internet or your VPC</td><td class="yes">Yes</td><td class="yes">Yes</td><td>Exposing one TCP/UDP service in production</td></tr>
+        <tr><td>Ingress / Gateway</td><td>The internet, routed by host and path</td><td class="yes">Yes</td><td class="yes">Yes</td><td>Production HTTP(S) for many services</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= ERRORS ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">Troubleshooting</div>
+    <h2>The errors you'll actually see</h2>
+  </header>
+  <div class="errors">
+    <div class="err-card">
+      <h3>Local port already taken</h3>
+<pre>Unable to listen on port 8080: Listeners failed to create with the following errors: [unable to create listener: Error listen tcp4 127.0.0.1:8080: bind: address already in use]
+error: unable to listen on any of the requested ports: [{8080 80}]</pre>
+      <p><b>Fix:</b> something else owns 8080 on your machine. Pick another local port (<code>9090:80</code>) or find the culprit with <code>lsof -i :8080</code>.</p>
+    </div>
+    <div class="err-card">
+      <h3>Nothing listening inside the Pod</h3>
+<pre>an error occurred forwarding 8080 -> 80: error forwarding port 80 to pod …: failed to connect to localhost:80 inside namespace …: connect: connection refused</pre>
+      <p><b>Fix:</b> the tunnel works, the app doesn't. The remote port is wrong or the process hasn't started. Check with <code>kubectl logs</code> and the <code>containerPort</code>.</p>
+    </div>
+    <div class="err-card">
+      <h3>Forbidden by RBAC</h3>
+<pre>error: error upgrading connection: pods "nginx-pod1" is forbidden: User "dev" cannot create resource "pods/portforward" in API group "" in the namespace "default"</pre>
+      <p><b>Fix:</b> grant <code>create</code> on <code>pods/portforward</code>, plus <code>get</code> on <code>pods</code>. Test with <code>kubectl auth can-i create pods/portforward</code>.</p>
+    </div>
+    <div class="err-card">
+      <h3>Pod went away</h3>
+<pre>Handling connection for 8080
+error: lost connection to pod</pre>
+      <p><b>Fix:</b> the Pod restarted, was evicted, or a rollout replaced it. Run the command again. For a long-lived loop, wrap it: <code>while true; do kubectl port-forward …; sleep 1; done</code>.</p>
+    </div>
+  </div>
+  <div class="codewrap prose" style="max-width:100%">
+<pre class="code" data-copy># Minimal Role that lets a user port-forward in one namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: port-forwarder
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create"]</pre>
+  </div>
+</section>
+
+<!-- ================= CHEAT SHEET ================= -->
+<section>
+  <header class="prose">
+    <div class="eyebrow">Cheat sheet</div>
+    <h2>Commands worth keeping</h2>
+  </header>
+  <div class="cheats">
+    <div class="cheat"><span>Forward to the Pod from <code>pod.yaml</code></span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 8080:80</pre></div></div>
+    <div class="cheat"><span>Let kubectl choose a free local port</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 :80</pre></div></div>
+    <div class="cheat"><span>Several ports in one tunnel</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 8080:80 8443:443</pre></div></div>
+    <div class="cheat"><span>Reach a database in another namespace</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward -n db svc/postgres 5432:5432</pre></div></div>
+    <div class="cheat"><span>Share with your LAN (careful)</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward --address 0.0.0.0 pod/nginx-pod1 8080:80</pre></div></div>
+    <div class="cheat"><span>Run it in the background, stop it later</span><div class="codewrap"><pre class="code" data-copy>kubectl port-forward pod/nginx-pod1 8080:80 &gt;/dev/null 2&gt;&amp;1 &amp;
+kill %1</pre></div></div>
+  </div>
+</section>
+
+<footer>
+  Request path and stream behavior follow upstream Kubernetes: kubectl 1.31+ speaks WebSocket to the API server by default (older clusters fall back to SPDY). Port-forward carries TCP only; UDP is not supported.
+</footer>
+</div>
+
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+function mk(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* Move a packet along a path. Resolves true when it arrives, false if alive() turned false. */
+function travel(layer, d, { cls = 'pkt', speed = 0.3, label, alive = () => true, ease = true } = {}) {
+  return new Promise(res => {
+    const p = mk('path', { d, fill: 'none', stroke: 'none' }, layer);
+    const L = p.getTotalLength();
+    const g = mk('g', { class: cls }, layer);
+    mk('circle', { r: 7 }, g);
+    if (label) mk('text', { x: 11, y: -11, class: 'pkt-label' }, g).textContent = label;
+    const dur = reduce ? 0 : Math.max(260, L / speed);
+    const t0 = performance.now();
+    const frame = now => {
+      if (!alive()) { g.remove(); p.remove(); res(false); return; }
+      const k = dur ? Math.min(1, (now - t0) / dur) : 1;
+      const e = ease ? (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2) : k;
+      const pt = p.getPointAtLength(e * L);
+      g.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+      if (k < 1) requestAnimationFrame(frame); else { g.remove(); p.remove(); res(true); }
+    };
+    requestAnimationFrame(frame);
+  });
+}
+function pulse(el) {
+  if (!el) return;
+  el.classList.remove('pulse'); void el.getBBox(); el.classList.add('pulse');
+  setTimeout(() => el.classList.remove('pulse'), 700);
+}
+
+/* ================= journey ================= */
+const J = $('#journey'), jLayer = $('#j-packets');
+const C = id => $('#c-' + id);
+const SEG = {
+  bl: 'M162,140 V190', lk: 'M162,250 V292', ka: 'M284,335 H364', ar: 'M465,292 V250', ra: 'M465,250 V292',
+  ak: 'M566,335 H646', kr: 'M721,292 V244', rp: 'M796,206 H893 V186'
+};
+const REV = {
+  rp: 'M893,186 V206 H796', kr: 'M721,244 V292', ak: 'M646,335 H566', ka: 'M364,335 H284', lk: 'M162,292 V250', bl: 'M162,190 V140'
+};
+let run = 0;
+const ALL = ['browser', 'listener', 'kubectl', 'api', 'rbac', 'kubelet', 'runtime', 'pod', 'nginx'];
+
+const STEPS = [
+  {
+    t: 'kubectl asks the API server for a tunnel', hl: ['kubectl', 'api', 'rbac'],
+    b: 'kubectl reads your kubeconfig and sends a request to the Pod\'s <code>portforward</code> subresource, asking to upgrade the connection. The API server authenticates you and checks RBAC for the verb <code>create</code> on <code>pods/portforward</code>. No local port is open yet.',
+    c: `<span class="dim"># kubectl → kube-apiserver (TLS)</span>
+POST /api/v1/namespaces/default/pods/nginx-pod1/portforward
+Connection: Upgrade
+Upgrade: websocket
+Sec-WebSocket-Protocol: SPDY/3.1+portforward.k8s.io`,
+    go: async ok => {
+      await ok(travel(jLayer, SEG.ka, { label: 'POST', alive: ok.alive }));
+      pulse(C('api'));
+      await ok(travel(jLayer, SEG.ar, { alive: ok.alive }));
+      pulse(C('rbac')); await sleep(350);
+      await ok(travel(jLayer, SEG.ra, { label: '✓ allowed', alive: ok.alive }));
+      pulse(C('api'));
+    }
+  },
+  {
+    t: 'The API server dials the kubelet', hl: ['api', 'kubelet'],
+    b: 'The API server looks up which node runs <code>nginx-pod1</code> and opens a connection to that node\'s kubelet on port 10250. From now on it proxies bytes in both directions, so the API server stays in the path for the whole session.',
+    c: `<span class="dim"># kube-apiserver → kubelet on node-1</span>
+POST https://node-1:10250/portForward/default/nginx-pod1`,
+    go: async ok => { await ok(travel(jLayer, SEG.ak, { alive: ok.alive })); pulse(C('kubelet')); }
+  },
+  {
+    t: 'The kubelet hands off to the container runtime', hl: ['kubelet', 'runtime', 'pod'],
+    b: 'The kubelet calls the runtime\'s CRI <code>PortForward</code> method. containerd (or CRI-O) knows the Pod sandbox and its network namespace, so it is the one that will eventually open the TCP connection to your app.',
+    c: `<span class="dim"># kubelet → containerd (CRI, gRPC)</span>
+PortForward(PortForwardRequest{
+  pod_sandbox_id: "3f1c9a…",
+  port: [80],
+})  →  streaming URL, proxied by kubelet`,
+    go: async ok => {
+      await ok(travel(jLayer, SEG.kr, { alive: ok.alive })); pulse(C('runtime'));
+      await ok(travel(jLayer, SEG.rp, { alive: ok.alive })); pulse(C('nginx'));
+    }
+  },
+  {
+    t: 'kubectl opens the local port', hl: ['listener', 'kubectl'],
+    b: 'Only after the tunnel is up does kubectl bind <code>127.0.0.1:8080</code> and <code>[::1]:8080</code>. These are the two lines it prints. The socket belongs to the kubectl process, which is why closing the terminal closes the port.',
+    c: `<span class="p">$</span> kubectl port-forward pod/nginx-pod1 8080:80
+Forwarding from 127.0.0.1:8080 -> 80
+Forwarding from [::1]:8080 -> 80`,
+    go: async () => { pulse(C('listener')); await sleep(500); pulse(C('listener')); }
+  },
+  {
+    t: 'Your browser connects', hl: ['browser', 'listener', 'kubectl'],
+    b: 'The browser connects to localhost:8080 like any local server. kubectl accepts the connection and creates a new pair of streams inside the tunnel, one for data and one for errors, labelled with the remote port and a request ID.',
+    c: `Handling connection for 8080
+<span class="dim"># new streams inside the tunnel</span>
+streamType: error   port: 80   requestID: 0
+streamType: data    port: 80   requestID: 0`,
+    go: async ok => {
+      await ok(travel(jLayer, SEG.bl, { label: 'connect', alive: ok.alive })); pulse(C('listener'));
+      await ok(travel(jLayer, SEG.lk, { alive: ok.alive })); pulse(C('kubectl'));
+    }
+  },
+  {
+    t: 'Bytes ride the tunnel into the Pod', hl: ['browser', 'listener', 'kubectl', 'api', 'kubelet', 'runtime', 'pod', 'nginx'],
+    b: 'Your request flows down the data stream through the API server and kubelet. The runtime dials <code>localhost:80</code> from inside the Pod\'s network namespace and copies the bytes in. No Service, no kube-proxy, and no route to the Pod IP are involved. It even reaches apps that listen only on 127.0.0.1 inside the Pod.',
+    c: `GET / HTTP/1.1
+Host: localhost:8080
+User-Agent: curl/8.7.1
+Accept: */*`,
+    go: async ok => {
+      for (const k of ['bl', 'lk', 'ka', 'ak', 'kr', 'rp']) {
+        if (!await ok(travel(jLayer, SEG[k], { label: 'GET /', alive: ok.alive, speed: 0.42 }))) return;
+      }
+      pulse(C('nginx'));
+    }
+  },
+  {
+    t: 'The response comes back the same way', hl: ['browser', 'listener', 'kubectl', 'api', 'kubelet', 'runtime', 'pod', 'nginx'],
+    b: 'nginx answers on the same connection. The bytes travel back up the data stream, out of the tunnel, and kubectl writes them to your browser\'s socket. The tunnel stays open for the next connection until you press Ctrl-C.',
+    c: `HTTP/1.1 200 OK
+Server: nginx/1.27.2
+Content-Type: text/html
+Content-Length: 615
+
+&lt;!DOCTYPE html&gt;&lt;title&gt;Welcome to nginx!&lt;/title&gt;…`,
+    go: async ok => {
+      for (const k of ['rp', 'kr', 'ak', 'ka', 'lk', 'bl']) {
+        if (!await ok(travel(jLayer, REV[k], { cls: 'pkt resp', label: '200 OK', alive: ok.alive, speed: 0.42 }))) return;
+      }
+      pulse(C('browser'));
+    }
+  }
+];
+
+const stepsEl = $('#steps');
+STEPS.forEach((s, i) => {
+  const li = document.createElement('li');
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = s.t; b.dataset.i = i;
+  b.addEventListener('click', () => { select(i); play(i); });
+  li.appendChild(b); stepsEl.appendChild(li);
+});
+
+let cur = -1;
+function paint(i) {
+  // which parts exist at this point in the story
+  const overview = i < 0;
+  $('#t1').classList.toggle('off', !overview && i < 0);
+  $('#t2').classList.toggle('off', !overview && i < 1);
+  $('#t3').classList.toggle('off', !overview && i < 2);
+  C('listener').classList.toggle('ghost', !overview && i < 3);
+  $('#stream-badge').classList.toggle('ghost', !overview && i < 4);
+  ALL.forEach(id => C(id).classList.toggle('hl', !overview && STEPS[i].hl.includes(id)));
+  stepsEl.querySelectorAll('button').forEach((b, k) => {
+    b.toggleAttribute('aria-current', k === i);
+    if (k === i) b.setAttribute('aria-current', 'step');
+    b.classList.toggle('done', !overview && k < i);
+  });
+  if (overview) {
+    $('#d-kicker').textContent = 'Overview';
+    $('#d-title').textContent = 'The whole path, once it is established';
+    $('#d-body').innerHTML = 'Three processes stand between your laptop and the container: the API server, the kubelet, and the container runtime. The tunnel is built first, from kubectl inward. Your traffic only flows once it exists. Press <b>Play all</b> to watch it get built.';
+    $('#d-code').innerHTML = `<span class="p">$</span> kubectl port-forward pod/nginx-pod1 8080:80\n<span class="p">$</span> curl localhost:8080`;
+  } else {
+    $('#d-kicker').textContent = `Step ${i + 1} of ${STEPS.length}`;
+    $('#d-title').textContent = STEPS[i].t;
+    $('#d-body').innerHTML = STEPS[i].b;
+    $('#d-code').innerHTML = STEPS[i].c;
+  }
+  $('#b-prev').disabled = i <= 0;
+  $('#b-next').disabled = i >= STEPS.length - 1;
+}
+function select(i) { cur = i; run++; jLayer.innerHTML = ''; paint(i); }
+function guard() {
+  const id = run;
+  const ok = p => p.then(v => v && id === run);
+  ok.alive = () => id === run;
+  return ok;
+}
+async function play(i) { const ok = guard(); await STEPS[i].go(ok); return ok.alive(); }
+
+$('#b-prev').onclick = () => { if (cur > 0) { select(cur - 1); play(cur); } };
+$('#b-next').onclick = () => { if (cur < STEPS.length - 1) { select(cur + 1); play(cur); } };
+$('#b-replay').onclick = () => { if (cur < 0) { select(0); } else select(cur); play(cur); };
+$('#b-all').onclick = async () => {
+  for (let i = 0; i < STEPS.length; i++) {
+    select(i);
+    const id = run;
+    await play(i);
+    if (id !== run) return;
+    await sleep(900);
+    if (id !== run) return;
+  }
+};
+paint(-1);
+
+/* ================= anatomy hover link ================= */
+const linkParts = k => document.querySelectorAll(`#cmdline [data-k="${k}"], #parts [data-k="${k}"]`);
+document.querySelectorAll('#cmdline [data-k], #parts [data-k]').forEach(el => {
+  el.addEventListener('mouseenter', () => linkParts(el.dataset.k).forEach(x => x.classList.add('lit')));
+  el.addEventListener('mouseleave', () => linkParts(el.dataset.k).forEach(x => x.classList.remove('lit')));
+});
+
+/* ================= multiplex ================= */
+let muxN = 3;
+const LANE = ['var(--signal)', 'var(--k8s)', 'var(--ok)', 'var(--danger)'];
+const CLIENTS = ['curl localhost:8080', 'browser tab', 'browser tab 2', 'load test'];
+function drawMux() {
+  const g = $('#mux-g'); g.innerHTML = '';
+  const ys = Array.from({ length: muxN }, (_, i) => 160 + (i - (muxN - 1) / 2) * 62);
+  const top = ys[0] - 36, bot = ys[ys.length - 1] + 36;
+  mk('text', { class: 't-zone', x: 20, y: 28 }, g).textContent = 'LOCALHOST:8080';
+  mk('text', { class: 't-zone', x: 500, y: top - 12, 'text-anchor': 'middle' }, g).textContent = 'ONE TUNNEL · ONE TLS CONNECTION';
+  mk('text', { class: 't-zone', x: 980, y: 28, 'text-anchor': 'end' }, g).textContent = 'INSIDE THE POD';
+  mk('rect', { class: 'pipe', x: 300, y: top, width: 400, height: bot - top, rx: 28 }, g);
+  ys.forEach((y, i) => {
+    const col = LANE[i];
+    const cg = mk('g', {}, g);
+    mk('rect', { class: 'box', x: 20, y: y - 22, width: 200, height: 44, rx: 8, style: `stroke:${col}` }, cg);
+    mk('text', { class: 't-sub', x: 34, y: y - 3, style: 'fill:var(--ink)' }, cg).textContent = CLIENTS[i];
+    mk('text', { class: 't-small', x: 34, y: y + 13 }, cg).textContent = `TCP conn #${i + 1}`;
+    mk('path', { class: 'wire', d: `M220,${y} H300`, style: `stroke:${col}` }, g);
+    mk('path', { class: 'lane-data', d: `M300,${y - 7} H700`, style: `stroke:${col}` }, g);
+    mk('path', { class: 'lane-err', d: `M300,${y + 8} H700`, style: `stroke:${col}` }, g);
+    mk('text', { class: 't-small', x: 318, y: y - 14, style: 'fill:var(--ink)' }, g).textContent = `data · port 80 · requestID ${i}`;
+    mk('text', { class: 't-small', x: 682, y: y + 23, 'text-anchor': 'end' }, g).textContent = 'error';
+    mk('path', { class: 'wire', d: `M700,${y} C760,${y} 760,160 820,160`, style: `stroke:${col}` }, g);
+  });
+  const ng = mk('g', {}, g);
+  mk('rect', { class: 'box', x: 820, y: 118, width: 160, height: 84, rx: 10, style: 'stroke:var(--k8s)' }, ng);
+  mk('text', { class: 't-title', x: 836, y: 148 }, ng).textContent = 'nginx :80';
+  mk('text', { class: 't-small', x: 836, y: 170 }, ng).textContent = `${muxN} TCP conn${muxN > 1 ? 's' : ''} to`;
+  mk('text', { class: 't-small', x: 836, y: 185 }, ng).textContent = 'localhost:80';
+  $('#mux-stat').innerHTML = `<b>${muxN}</b> local connection${muxN > 1 ? 's' : ''} → <b>${muxN * 2}</b> streams in <b>1</b> tunnel → <b>${muxN}</b> connection${muxN > 1 ? 's' : ''} inside the Pod`;
+  $('#mux-add').disabled = muxN >= 4;
+  $('#mux-rm').disabled = muxN <= 1;
+}
+$('#mux-add').onclick = () => { muxN = Math.min(4, muxN + 1); drawMux(); };
+$('#mux-rm').onclick = () => { muxN = Math.max(1, muxN - 1); drawMux(); };
+drawMux();
+
+/* ================= service demo ================= */
+const SV = $('#svc'), svLayer = $('#sv-packets'), svLog = $('#sv-log');
+const FRESH = 'web-5d8f-r2vbw';
+const NAMES = ['web-5d8f-x7k2p', 'web-5d8f-q9hmc', 'web-5d8f-ln4tz'];
+const S2P = ['M540,170 C 630,170 630,64 720,64', 'M540,170 H720', 'M540,170 C 630,170 630,276 720,276'];
+const TUN = 'M206,150 C 260,150 250,62 330,62 L 690,62 C 705,62 710,64 720,64';
+let sv;
+const pod = i => $('#pod' + i);
+function log(lines) {
+  sv.log.push(...lines);
+  sv.log = sv.log.slice(-6);
+  svLog.innerHTML = sv.log.join('\n');
+}
+function svReset(mode) {
+  if (sv) { clearInterval(sv.timer); sv.gen++; }
+  const gen = sv ? sv.gen : 0;
+  sv = { mode, alive: [true, true, true], counts: [0, 0, 0], broken: false, killed: false, gen, log: [], timer: null };
+  svLayer.innerHTML = '';
+  SV.dataset.mode = mode;
+  $('#pf-paths').classList.remove('broken');
+  [0, 1, 2].forEach(i => {
+    const p = pod(i);
+    p.className.baseVal = 'pod comp' + (mode === 'pf' && i > 0 ? ' unused' : '');
+    p.querySelector('[data-name]').textContent = NAMES[i];
+    p.querySelector('[data-status]').textContent = 'Running';
+    p.querySelector('[data-count]').textContent = '0';
+  });
+  $('#m-pf').setAttribute('aria-pressed', mode === 'pf');
+  $('#m-svc').setAttribute('aria-pressed', mode === 'svc');
+  $('#sv-kill').disabled = false;
+  if (mode === 'pf') {
+    log(['<span class="p">$</span> kubectl port-forward svc/web 8080:80',
+      'Forwarding from 127.0.0.1:8080 -> 80', 'Forwarding from [::1]:8080 -> 80',
+      '<span class="dim">Handling connection for 8080</span>']);
+  } else {
+    log(['<span class="p">$</span> kubectl exec client -- sh -c \'while true; do curl -s web; done\'']);
+  }
+  const g = sv.gen;
+  const alive = () => sv.gen === g;
+  const serve = i => {
+    if (!sv.alive[i]) return;
+    sv.counts[i]++;
+    pod(i).querySelector('[data-count]').textContent = sv.counts[i];
+    pulse(pod(i));
+  };
+  const tick = async () => {
+    if (reduce) {
+      // no motion: just tally requests
+      if (sv.mode === 'pf') { if (!sv.broken) serve(0); }
+      else { const live = [0, 1, 2].filter(i => sv.alive[i]); serve(live[Math.floor(Math.random() * live.length)]); }
+      return;
+    }
+    if (sv.mode === 'pf') {
+      if (sv.broken) return;
+      const done = await travel(svLayer, TUN, { alive: () => alive() && !sv.broken, speed: 0.55, ease: false });
+      if (done) serve(0);
+    } else {
+      if (!await travel(svLayer, 'M206,170 H340', { alive, speed: 0.5, ease: false })) return;
+      const live = [0, 1, 2].filter(i => sv.alive[i]);
+      const i = live[Math.floor(Math.random() * live.length)];
+      const done = await travel(svLayer, S2P[i], { alive: () => alive() && sv.alive[i], speed: 0.5, ease: false });
+      if (done) { serve(i); if (Math.random() < 0.3) log([`<span class="ok">200</span> served by ${pod(i).querySelector('[data-name]').textContent}`]); }
+    }
+  };
+  sv.timer = setInterval(tick, reduce ? 900 : 520);
+  tick();
+}
+$('#m-pf').onclick = () => svReset('pf');
+$('#m-svc').onclick = () => svReset('svc');
+$('#sv-reset').onclick = () => svReset(sv.mode);
+$('#sv-kill').onclick = () => {
+  if (sv.killed) return;
+  sv.killed = true;
+  $('#sv-kill').disabled = true;
+  const g = sv.gen, p = pod(0);
+  p.className.baseVal = 'pod comp dying';
+  p.querySelector('[data-status]').textContent = 'Terminating';
+  sv.alive[0] = false;
+  if (sv.mode === 'pf') {
+    sv.broken = true;
+    $('#pf-paths').classList.add('broken');
+    log(['<span class="err">error: lost connection to pod</span>', '<span class="p">$</span> <span class="dim"># kubectl exited. Nothing is listening on 8080 now.</span>']);
+  } else {
+    log(['<span class="dim"># web-5d8f-x7k2p removed from the Service endpoints</span>']);
+  }
+  setTimeout(() => {
+    if (sv.gen !== g) return;
+    p.className.baseVal = 'pod comp gone';
+    setTimeout(() => {
+      if (sv.gen !== g) return;
+      p.querySelector('[data-name]').textContent = FRESH;
+      p.querySelector('[data-status]').textContent = 'Running · replacement';
+      p.querySelector('[data-count]').textContent = '0';
+      sv.counts[0] = 0;
+      p.className.baseVal = 'pod comp fresh';
+      if (sv.mode === 'pf') {
+        log([`<span class="dim"># ${FRESH} is Running, but the old tunnel doesn't follow it.</span>`]);
+      } else {
+        sv.alive[0] = true;
+        log([`<span class="dim"># ${FRESH} is Ready and joins the endpoints</span>`]);
+      }
+    }, reduce ? 0 : 1100);
+  }, reduce ? 0 : 900);
+};
+svReset('pf');
+
+/* ================= builder ================= */
+const F = id => $('#f-' + id);
+function build() {
+  const kind = F('kind').value, name = F('name').value.trim() || 'NAME', ns = F('ns').value.trim();
+  const lp = F('local').value.trim(), rp = F('remote').value.trim() || '80', addr = F('addr').value;
+  const ports = lp === '' ? `:${rp}` : `${lp}:${rp}`;
+  const parts = ['kubectl port-forward'];
+  if (ns && ns !== 'default') parts.push(`-n ${ns}`);
+  if (addr !== 'localhost') parts.push(`--address ${addr}`);
+  parts.push(`${kind}/${name}`, ports);
+  $('#b-cmd').textContent = parts.join(' ');
+  const shown = lp === '' ? '53817' : lp;
+  const outLines = addr === 'localhost'
+    ? [`Forwarding from 127.0.0.1:${shown} -> ${rp}`, `Forwarding from [::1]:${shown} -> ${rp}`]
+    : [`Forwarding from 0.0.0.0:${shown} -> ${rp}`];
+  $('#b-out').textContent = '# expected output\n' + outLines.join('\n');
+  const target = kind === 'pod' ? `pod/${name}` : `one Pod of ${kind}/${name}`;
+  $('#b-route').innerHTML = `<span class="l">${addr === 'localhost' ? 'localhost' : 'any-interface'}:${esc(shown)}</span><i>→</i><span>tunnel via API server</span><i>→</i><span class="r">${esc(target)} :${esc(kind === 'svc' ? 'targetPort' : rp)}</span>`;
+  $('#f-remote-hint').textContent = kind === 'svc' ? 'Service port (kubectl maps it to targetPort)' : 'containerPort in the Pod';
+  const notes = [];
+  if (kind !== 'pod') notes.push(['', `kubectl resolves ${kind}/${esc(name)} to a single Pod when it starts and stays on it. No load balancing, no failover.`]);
+  if (lp === '') notes.push(['', 'A random free local port is chosen. Read it from the first output line.']);
+  if (addr !== 'localhost') notes.push(['warn', 'Anyone who can reach your machine on this port reaches the Pod, with your credentials behind it.']);
+  const n = parseInt(lp, 10);
+  if (n && n < 1024) notes.push(['warn', 'On Linux, local ports below 1024 need root. Pick 8080 or higher.']);
+  if ((lp && !/^\d+$/.test(lp)) || !/^\d+$/.test(rp) || n > 65535) notes.push(['warn', 'Ports must be numbers between 1 and 65535.']);
+  notes.push(['', 'TCP only. UDP services such as DNS cannot be forwarded.']);
+  $('#b-notes').innerHTML = notes.map(([c, t]) => `<li class="${c}">${t}</li>`).join('');
+}
+$('#bf').addEventListener('input', build);
+$('#bf').addEventListener('submit', e => e.preventDefault());
+build();
+
+/* ================= copy buttons ================= */
+document.querySelectorAll('pre[data-copy]').forEach(pre => {
+  const b = document.createElement('button');
+  b.className = 'copy'; b.type = 'button'; b.textContent = 'Copy';
+  b.addEventListener('click', () => {
+    const text = pre.textContent;
+    const done = () => { b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy'), 1400); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Press ⌘C'; };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  });
+  pre.parentElement.appendChild(b);
+});
+})();
+</script>
+</body>
+</html>
