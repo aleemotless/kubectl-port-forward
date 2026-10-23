@@ -1038,7 +1038,7 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
           <rect class="kernel" x="256" y="290" width="294" height="172" rx="10"/>
           <text class="t-zone" x="270" y="310">KUBE-APISERVER · etcd</text>
         </g>
-        <g class="comp" id="f-o-ing" data-f="ingress"><rect class="box" x="270" y="320" width="266" height="40" rx="8" style="stroke:var(--signal)"/><text class="t-badge" x="282" y="337">Ingress my-ingress</text><text class="t-small" x="282" y="352">/ Prefix → my-app:80</text></g>
+        <g class="comp" id="f-o-ing" data-f="ingress"><rect class="box" x="270" y="320" width="266" height="40" rx="8" style="stroke:var(--signal)"/><text class="t-badge" x="282" y="337">Ingress my-ingress</text><text class="t-small" x="282" y="352">class nginx · / Prefix → my-app:80</text></g>
         <g class="comp" id="f-o-svc" data-f="deploy"><rect class="box" x="270" y="366" width="266" height="40" rx="8" style="stroke:var(--k8s)"/><text class="t-badge" x="282" y="383">Service my-app</text><text class="t-small" x="282" y="398">app=my-app · 80 → 80</text></g>
         <g class="comp" id="f-o-dep" data-f="deploy"><rect class="box" x="270" y="412" width="266" height="40" rx="8" style="stroke:var(--k8s)"/><text class="t-badge" x="282" y="429">Deployment my-deploy</text><text class="t-small" x="282" y="444">replicas 3 · vinsdocker/nginx-gke</text></g>
         <g data-f="deploy" id="f-pods"></g>
@@ -1130,7 +1130,7 @@ text.c-max, text.c-min { stroke: none; font: 600 10.5px var(--f-mono); }
     <h2>Worth knowing</h2>
   </header>
   <div class="minis">
-    <div class="mini"><b>IngressClass</b><code>ingressClassName: nginx</code><p>Says which controller owns the Ingress. Yours has none; it works because the kind manifest sets <code>--watch-ingress-without-class</code>.</p></div>
+    <div class="mini"><b>IngressClass</b><code>ingressClassName: nginx</code><p>Says which controller owns the Ingress. Without it, the kind manifest still works because it sets <code>--watch-ingress-without-class</code>.</p></div>
     <div class="mini"><b>TLS</b><code>tls: [{hosts, secretName}]</code><p>nginx terminates HTTPS using a <code>kubernetes.io/tls</code> Secret, then talks HTTP to Pods.</p></div>
     <div class="mini"><b>Annotations</b><code>nginx.ingress.kubernetes.io/rewrite-target</code><p>Controller-specific options: rewrites, timeouts, body size, rate limits.</p></div>
     <div class="mini"><b>No match</b><code>defaultBackend</code><p>Requests no rule matches get nginx's 404, or the default backend if you set one.</p></div>
@@ -2779,7 +2779,7 @@ $('#c-apply').onclick = () => {
 ingress.networking.k8s.io/my-ingress created
 <span class="p">$</span> kubectl get ingress
 NAME         CLASS    HOSTS   ADDRESS   PORTS
-my-ingress   &lt;none&gt;   *                 80        <span class="dim"># no ADDRESS: nobody is serving it</span>
+my-ingress   nginx    *                 80        <span class="dim"># no ADDRESS: nobody is serving it</span>
 <span class="p">$</span> curl localhost/
 <span class="err">curl: (7) Failed to connect to localhost port 80</span>`;
   $('#c-install').disabled = false;
@@ -2800,7 +2800,7 @@ deployment.apps/ingress-nginx-controller created`;
   cLog.innerHTML += `
 <span class="p">$</span> kubectl get ingress
 NAME         CLASS    HOSTS   ADDRESS     PORTS
-my-ingress   &lt;none&gt;   *       localhost   80
+my-ingress   nginx    *       localhost   80
 <span class="p">$</span> curl -s -o /dev/null -w '%{http_code}' localhost/
 <span class="ok">200</span>`;
 };
@@ -2872,12 +2872,13 @@ spec:
   ports:
     - port: 80
       targetPort: 80`],
-  ingress: ['One rule: any host, path / (Prefix), sent to Service my-app port 80. On its own it is just data in the API server.',
+  ingress: ['Class nginx, one rule: any host, path / (Prefix), sent to Service my-app port 80. On its own it is just data in the API server.',
 `apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: my-ingress
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:
